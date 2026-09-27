@@ -9,7 +9,7 @@ const client = new Client({
     ]
 });
 
-// الأيديات المعتمدة لمدينة الرياض
+// الأيديات المعتمدة لمدينة الرياض (مطابقة 100%)
 const ROLE_ADMIN = '1553725517688217612';       // رتبة الفريق الإداري
 const ROLE_BLACKLIST = '1553725700631166987';   // رتبة تصريح اللعب (البلاك ليست)
 const ROLE_UNVERIFIED = '1553725832000966657';  // رتبة غير مفعل
@@ -20,7 +20,7 @@ const CHANNEL_LOG = '1553726188470669342';      // روم اللوج
 const pointsDB = new Map();
 
 client.once('ready', () => {
-    console.log(`Bot is online as ${client.user.tag}! Riyadh City Ultimate Bot is ready.`);
+    console.log(`Bot is online as ${client.user.tag}! Riyadh City Bot is fully fixed.`);
 });
 
 client.on('messageCreate', async message => {
@@ -60,10 +60,10 @@ client.on('messageCreate', async message => {
         );
 
         await message.channel.send({ embeds: [embed], components: [row] });
-        await message.delete();
+        try { await message.delete(); } catch (e) {}
     }
 
-    // أوامر نظام النقاط المتكاملة
+    // أوامر نظام النقاط
     if (command === '!points') {
         const target = message.mentions.members.first() || message.member;
         const points = pointsDB.get(target.id) || 0;
@@ -114,7 +114,7 @@ client.on('interactionCreate', async interaction => {
             return interaction.reply({ content: '❌ عذراً، أنت محظور (بلاك ليست) ولا يمكنك فتح تذكرة.', ephemeral: true });
         }
 
-        const channelName = `تذكرة-${member.user.username}`;
+        const channelName = `تذكرة-${member.user.username}`.toLowerCase();
         
         try {
             const ticketChannel = await guild.channels.create({
@@ -122,9 +122,18 @@ client.on('interactionCreate', async interaction => {
                 type: ChannelType.GuildText,
                 parent: CATEGORY_TICKETS,
                 permissionOverwrites: [
-                    { id: guild.id, deny: [PermissionFlagsBits.ViewChannel] },
-                    { id: member.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] },
-                    { id: ROLE_ADMIN, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] }
+                    {
+                        id: guild.id,
+                        deny: [PermissionFlagsBits.ViewChannel],
+                    },
+                    {
+                        id: member.id,
+                        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
+                    },
+                    {
+                        id: ROLE_ADMIN,
+                        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
+                    },
                 ],
             });
 
@@ -140,8 +149,8 @@ client.on('interactionCreate', async interaction => {
             await ticketChannel.send({ content: `${member} <@&${ROLE_ADMIN}>`, embeds: [ticketEmbed], components: [closeRow] });
             await interaction.reply({ content: `✅ تم فتح تذكرتك بنجاح: ${ticketChannel}`, ephemeral: true });
         } catch (error) {
-            console.error(error);
-            await interaction.reply({ content: '❌ حدث خطأ أثناء إنشاء التذكرة.', ephemeral: true });
+            console.error("Error creating ticket:", error);
+            await interaction.reply({ content: '❌ حدث خطأ أثناء إنشاء التذكرة. تأكد من صلاحيات البوت وأيديات الفئة.', ephemeral: true });
         }
     }
 
