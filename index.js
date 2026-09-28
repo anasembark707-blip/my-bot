@@ -168,8 +168,6 @@ client.on('interactionCreate', async interaction => {
                 return interaction.reply({ content: "عذراً، هذا الأمر للأحكام الإدارية فقط! ❌", ephemeral: true });
             }
 
-            await interaction.deferReply({ ephemeral: true });
-
             const embed = new EmbedBuilder()
                 .setColor(0x00FF00)
                 .setTitle("من هنا يمكنكم العب والتفعيل معنا 💞.")
@@ -187,8 +185,9 @@ client.on('interactionCreate', async interaction => {
                     .setStyle(ButtonStyle.Success)
             );
 
+            // إرسال البنر للروم والرد الفوري على الأمر لتجنب خطأ انقطاع الاتصال
             await channel.send({ embeds: [embed], components: [row] });
-            return interaction.editReply({ content: "تم إرسال بنر التفعيل بنجاح! ✅" });
+            return interaction.reply({ content: "تم إرسال بنر التفعيل بنجاح! ✅", ephemeral: true });
         }
 
         if (commandName === 'pointict') {
@@ -416,14 +415,13 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
-// === (تمت إضافة هذا الجزء بنهاية الكود لربط البوت وتشغيله) ===
 const finalBotToken = process.env.DISCORD_TOKEN || process.env.TOKEN;
 
 if (!finalBotToken) {
     console.error("خطأ حرج: لم يتم العثور على توكن البوت في متغيرات البيئة (DISCORD_TOKEN أو TOKEN)!");
 } else {
     client.login(finalBotToken).then(() => {
-        console.log("حالة التوكن: موجود وتم قراءته بنجاح ✅");
+        console.log("تم إرسال أمر تسجيل الدخول للبوت بنجاح تام!");
     }).catch(err => {
         console.error("خطأ قاتل أثناء محاولة تسجيل دخول البوت من ديسكورد:", err);
     });
