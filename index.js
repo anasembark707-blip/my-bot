@@ -6,7 +6,10 @@ const {
     ButtonStyle, 
     EmbedBuilder, 
     ChannelType, 
-    PermissionsBitField 
+    PermissionsBitField,
+    SlashCommandBuilder,
+    REST,
+    Routes 
 } = require('discord.js');
 const express = require('express');
 
@@ -43,72 +46,43 @@ const CONFIG = {
 const staffPoints = new Map(); 
 const activeTickets = new Map(); 
 
-client.once('ready', () => {
-    console.log(`تم تسجيل الدخول بنجاح باسم ${client.user.tag}! البوت جاهز بدون سلاش.`);
+client.once('ready', async () => {
+    console.log(`تم تسجيل الدخول بنجاح باسم ${client.user.tag}! البوت جاهز.`);
+
+    // إجبار البوت ليظهر أونلاين أخضر مع حالة نشاط
+    client.user.setPresence({
+        activities: [{ name: 'نظام التكتات والفعاليات 🎫', type: 3 }],
+        status: 'online',
+    });
+
+    const commands = [
+        new SlashCommandBuilder()
+            .setName('setup-verify')
+            .setDescription('إرسال بنر فتح تذكرة التفعيل الإداري'),
+        new SlashCommandBuilder()
+            .setName('pointict')
+            .setDescription('عرض نقاط الإداريين في تذاكر التفعيل'),
+        new SlashCommandBuilder()
+            .setName('restpointict')
+            .setDescription('تصفير نقاط الإداريين بالكامل')
+    ];
+
+    const botToken = process.env.DISCORD_TOKEN || process.env.TOKEN;
+    const rest = new REST({ version: '10' }).setToken(botToken);
+    try {
+        await rest.put(
+            Routes.applicationCommands(client.user.id),
+            { body: commands },
+        );
+        console.log('تم تسجيل أوامر السلاش (Slash Commands) بنجاح! 🚀');
+    } catch (error) {
+        console.error('خطأ في تسجيل أوامر السلاش:', error);
+    }
 });
 
 client.on('messageCreate', async message => {
     if (message.author.bot) return;
 
-    // 1. نظام الأوامر العادية (Prefix: !)
-    if (message.content.startsWith('!')) {
-        const args = message.content.slice(1).trim().split(/ +/);
-        const command = args.shift().toLowerCase();
-
-        if (command === 'setup-verify') {
-            if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-                return message.reply("عذراً، هذا الأمر للأحكام الإدارية فقط! ❌");
-            }
-
-            const embed = new EmbedBuilder()
-                .setColor(0x00FF00)
-                .setTitle("من هنا يمكنكم العب والتفعيل معنا 💞.")
-                .setDescription(
-                    "فتح تذكرة ل تقديم على رتبة تصريح لعب 🎮\n\n" +
-                    "يمكنك من خلالها لعب الرولات معنا 🤝🏼\n\n" +
-                    "قم فقط ب الإجابة على الأسئلة التفاعليه 🤍.\n\n" +
-                    "وشكرا لكم...💞"
-                );
-
-            const row = new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                    .setCustomId('open_ticket')
-                    .setLabel('فتح تذكرة تفعيل ✅️')
-                    .setStyle(ButtonStyle.Success)
-            );
-
-            await message.channel.send({ embeds: [embed], components: [row] });
-            return message.delete().catch(() => {});
-        }
-
-        if (command === 'pointict') {
-            if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-                return message.reply("عذراً، هذا الأمر للأحكام الإدارية فقط! ❌");
-            }
-            
-            const sortedPoints = [...staffPoints.entries()].sort((a, b) => b[1] - a[1]);
-            let desc = sortedPoints.length > 0 
-                ? sortedPoints.map(([id, pts], index) => `${index + 1} <@${id}> : ${pts}`).join('\n')
-                : 'لا توجد نقاط مسجلة حتى الآن.';
-
-            const embed = new EmbedBuilder()
-                .setColor(0x00FF00)
-                .setTitle("نقاط تذكرة التفعيل")
-                .setDescription(desc);
-
-            return message.reply({ embeds: [embed] });
-        }
-
-        if (command === 'restpointict') {
-            if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-                return message.reply("عذراً، هذا الأمر للأحكام الإدارية فقط! ❌");
-            }
-            staffPoints.clear();
-            return message.reply("تم تصفير جميع نقاط الإداريين بنجاح! 🔄");
-        }
-    }
-
-    // 2. نظام الأسئلة التفاعلية داخل التكتات
     const ticketData = activeTickets.get(message.channel.id);
     if (ticketData && message.author.id === ticketData.userId) {
         if (ticketData.timer) {
@@ -192,6 +166,64 @@ client.on('messageCreate', async message => {
 });
 
 client.on('interactionCreate', async interaction => {
+    if (interaction.isChatInputCommand()) {
+        const { commandName, member, channel } = interaction;
+
+        if (commandName === 'setup-verify') {
+            if (!member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+                return interaction.reply({ content: "عذراً، هذا الأمر للأحكام الإدارية فقط! ❌", ephemeral: true });
+            }
+
+            await interaction.deferReply({ ephemeral: true });
+
+            const embed = new EmbedBuilder()
+                .setColor(0x00FF00)
+                .setTitle("من هنا يمكنكم العب والتفعيل معنا 💞.")
+                .setDescription(
+                    "فتح تذكرة ل تقديم على رتبة تصريح لعب 🎮\n\n" +
+                    "يمكنك من خلالها لعب الرولات معنا 🤝🏼\n\n" +
+                    "قم فقط ب الإجابة على الأسئلة التفاعليه 🤍.\n\n" +
+                    "وشكرا لكم...💞"
+                );
+
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('open_ticket')
+                    .setLabel('فتح تذكرة تفعيل ✅️')
+                    .setStyle(ButtonStyle.Success)
+            );
+
+            await channel.send({ embeds: [embed], components: [row] });
+            return interaction.editReply({ content: "تم إرسال بنر التفعيل بنجاح! ✅" });
+        }
+
+        if (commandName === 'pointict') {
+            if (!member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+                return interaction.reply({ content: "عذراً، هذا الأمر للأحكام الإدارية فقط! ❌", ephemeral: true });
+            }
+            
+            const sortedPoints = [...staffPoints.entries()].sort((a, b) => b[1] - a[1]);
+            let desc = sortedPoints.length > 0 
+                ? sortedPoints.map(([id, pts], index) => `${index + 1} <@${id}> : ${pts}`).join('\n')
+                : 'لا توجد نقاط مسجلة حتى الآن.';
+
+            const embed = new EmbedBuilder()
+                .setColor(0x00FF00)
+                .setTitle("نقاط تذكرة التفعيل")
+                .setDescription(desc);
+
+            return interaction.reply({ embeds: [embed], ephemeral: true });
+        }
+
+        if (commandName === 'restpointict') {
+            if (!member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+                return interaction.reply({ content: "عذراً، هذا الأمر للأحكام الإدارية فقط! ❌", ephemeral: true });
+            }
+            staffPoints.clear();
+            return interaction.reply({ content: "تم تصفير جميع نقاط الإداريين بنجاح! 🔄", ephemeral: true });
+        }
+    }
+
     if (!interaction.isButton()) return;
 
     const { customId, channel, guild, member, user } = interaction;
@@ -384,7 +416,6 @@ client.on('interactionCreate', async interaction => {
     }
 
     if (customId === 'reject_ticket') {
-        app = null; // safe fallback reference
         await channel.send("تم رفض الطلب ❌. سيتم إغلاق التذكرة...");
         setTimeout(() => channel.delete().catch(() => {}), 10000);
         return interaction.reply({ content: "تم رفض الطلب.", ephemeral: true });
