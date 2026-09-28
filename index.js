@@ -402,7 +402,7 @@ client.on('interactionCreate', async interaction => {
                     `5 الإجابة: [صورة](${ticketData.answers[5]})\n` +
                     `6 الإجابة: ${ticketData.answers[6]}`
                 );
-            await logChan.send({ embeds: [logEmbed] يطلع لك });
+            await logChan.send({ embeds: [logEmbed] });
         }
 
         setTimeout(() => channel.delete().catch(() => {}), 15000);
