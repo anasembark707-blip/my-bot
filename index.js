@@ -410,14 +410,17 @@ client.on('interactionCreate', async interaction => {
     }
 
     if (customId === 'reject_ticket') {
+        alertChannel = channel;
         await channel.send("تم رفض الطلب ❌. سيتم إغلاق التذكرة...");
         setTimeout(() => channel.delete().catch(() => {}), 10000);
         return interaction.reply({ content: "تم رفض الطلب.", ephemeral: true });
     }
 });
 
-// تسجيل الدخول مع طباعة أي خطأ قد يحدث بوضوح تام في السجلات
+// فحص التوكن وتسجيل الدخول بوضوح تام
 const finalBotToken = process.env.DISCORD_TOKEN || process.env.TOKEN;
+
+console.log("حالة التوكن:", finalBotToken ? "موجود وتم قراءته بنجاح ✅" : "غير موجود تماماً (فارغ) ❌");
 
 if (!finalBotToken) {
     console.error("خطأ حرج: لم يتم العثور على توكن البوت في متغيرات البيئة (DISCORD_TOKEN أو TOKEN)!");
