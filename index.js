@@ -168,6 +168,8 @@ client.on('interactionCreate', async interaction => {
                 return interaction.reply({ content: "عذراً، هذا الأمر للأحكام الإدارية فقط! ❌", ephemeral: true });
             }
 
+            await interaction.deferReply({ ephemeral: true });
+
             const embed = new EmbedBuilder()
                 .setColor(0x00FF00)
                 .setTitle("من هنا يمكنكم العب والتفعيل معنا 💞.")
@@ -186,7 +188,7 @@ client.on('interactionCreate', async interaction => {
             );
 
             await channel.send({ embeds: [embed], components: [row] });
-            return interaction.reply({ content: "تم إرسال بنر التفعيل بنجاح! ✅", ephemeral: true });
+            return interaction.editReply({ content: "تم إرسال بنر التفعيل بنجاح! ✅" });
         }
 
         if (commandName === 'pointict') {
@@ -204,7 +206,7 @@ client.on('interactionCreate', async interaction => {
                 .setTitle("نقاط تذكرة التفعيل")
                 .setDescription(desc);
 
-            return interaction.reply({ embeds: [embed] });
+            return interaction.reply({ embeds: [embed], ephemeral: true });
         }
 
         if (commandName === 'restpointict') {
@@ -224,6 +226,8 @@ client.on('interactionCreate', async interaction => {
         if (member.roles.cache.has(CONFIG.roleVerified)) {
             return interaction.reply({ content: "أنت مفعل مسبقاً ولا تحتاج لفتح تذكرة! ❌", ephemeral: true });
         }
+
+        await interaction.deferReply({ ephemeral: true });
 
         const ticketName = `تكت-${user.username}`;
         const ticketChannel = await guild.channels.create({
@@ -273,7 +277,7 @@ client.on('interactionCreate', async interaction => {
 
         await ticketChannel.send(`<@${user.id}> **السؤال 1/6:** ما هو اسمك؟`);
 
-        return interaction.reply({ content: `تم فتح تذكرتك بنجاح هنا: <#${ticketChannel.id}> 🎟️`, ephemeral: true });
+        return interaction.editReply({ content: `تم فتح تذكرتك بنجاح هنا: <#${ticketChannel.id}> 🎟️` });
     }
 
     if (customId === 'claim_ticket') {
