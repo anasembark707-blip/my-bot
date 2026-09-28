@@ -10,7 +10,7 @@ const {
 } = require('discord.js');
 const express = require('express');
 
-// إعداد سرفر الويب ليتوافق مع استضافة Render (ضروري جداً لمنع خطأ Timeout)
+// إعداد سيرفر الويب لكي يتعرف Render على البورت ولا يفصل البوت
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -22,7 +22,6 @@ app.listen(PORT, () => {
     console.log(`Web server is listening on port ${PORT}`);
 });
 
-// إعدادات بوت ديسكورد
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -48,7 +47,7 @@ const staffPoints = new Map(); // staffId -> points
 const activeTickets = new Map(); // channelId -> { userAnswers, claimedBy, timer }
 
 client.once('ready', () => {
-    console.log(`البوت جاهز! تم تسجيل الدخول بنجاح ${client.user.tag}`);
+    console.log(`تم تسجيل الدخول بنجاح باسم ${client.user.tag}! البوت جاهز.`);
 });
 
 // 1. أمر إرسال رسالة التفعيل الأساسية
@@ -394,5 +393,5 @@ client.on('messageCreate', async message => {
     }
 });
 
-// تسجيل الدخول باستخدام التوكن من متغيرات البيئة بأمان
+// تسجيل الدخول للبوت
 client.login(process.env.TOKEN);
