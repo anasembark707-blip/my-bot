@@ -402,7 +402,7 @@ client.on('interactionCreate', async interaction => {
                     `5 الإجابة: [صورة](${ticketData.answers[5]})\n` +
                     `6 الإجابة: ${ticketData.answers[6]}`
                 );
-            await logChan.send({ embeds: [logEmbed] });
+            await logChan.send({ embeds: [logEmbed] يطلع لك });
         }
 
         setTimeout(() => channel.delete().catch(() => {}), 15000);
@@ -416,9 +416,15 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
-// تسجيل الدخول مع دعم كلا المتغيرين لضمان الاتصال الفوري وألا يبقى أوفلاين
+// تسجيل الدخول مع طباعة أي خطأ قد يحدث بوضوح تام في السجلات
 const finalBotToken = process.env.DISCORD_TOKEN || process.env.TOKEN;
+
 if (!finalBotToken) {
     console.error("خطأ حرج: لم يتم العثور على توكن البوت في متغيرات البيئة (DISCORD_TOKEN أو TOKEN)!");
+} else {
+    client.login(finalBotToken).then(() => {
+        console.log("تم إرسال أمر تسجيل الدخول للبوت بنجاح تام!");
+    }).catch(err => {
+        console.error("خطأ قاتل أثناء محاولة تسجيل دخول البوت من ديسكورد:", err);
+    });
 }
-client.login(finalBotToken);
