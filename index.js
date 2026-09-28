@@ -1,16 +1,3 @@
-const express = require('express');
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-app.get('/', (req, res) => {
-  res.send('Bot is alive and running!');
-});
-
-// تثبيت الاستماع على 0.0.0.0 عشان يقرأه رندر بدون مشاكل
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Web server is listening on port ${PORT}`);
-});
-
 const { 
     Client, 
     GatewayIntentBits, 
@@ -21,7 +8,21 @@ const {
     ChannelType, 
     PermissionsBitField 
 } = require('discord.js');
+const express = require('express');
 
+// إعداد سرفر الويب ليتوافق مع استضافة Render (ضروري جداً لمنع خطأ Timeout)
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get('/', (req, res) => {
+    res.send('Abu Ghamdah System Bot is alive and running! 🚀');
+});
+
+app.listen(PORT, () => {
+    console.log(`Web server is listening on port ${PORT}`);
+});
+
+// إعدادات بوت ديسكورد
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -47,7 +48,7 @@ const staffPoints = new Map(); // staffId -> points
 const activeTickets = new Map(); // channelId -> { userAnswers, claimedBy, timer }
 
 client.once('ready', () => {
-    console.log(`تم تسجيل الدخول بنجاح باسم ${client.user.tag}! البوت جاهز.`);
+    console.log(`البوت جاهز! تم تسجيل الدخول بنجاح ${client.user.tag}`);
 });
 
 // 1. أمر إرسال رسالة التفعيل الأساسية
@@ -393,5 +394,5 @@ client.on('messageCreate', async message => {
     }
 });
 
-// تشغيل البوت باستخدام متغيرات البيئة (الأمان لحسابك في GitHub)
+// تسجيل الدخول باستخدام التوكن من متغيرات البيئة بأمان
 client.login(process.env.TOKEN);
