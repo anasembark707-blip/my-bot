@@ -416,5 +416,9 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
-const tokenToUse = process.env.DISCORD_TOKEN || process.env.TOKEN;
-client.login(tokenToUse);
+// تسجيل الدخول مع دعم كلا المتغيرين لضمان الاتصال الفوري وألا يبقى أوفلاين
+const finalBotToken = process.env.DISCORD_TOKEN || process.env.TOKEN;
+if (!finalBotToken) {
+    console.error("خطأ حرج: لم يتم العثور على توكن البوت في متغيرات البيئة (DISCORD_TOKEN أو TOKEN)!");
+}
+client.login(finalBotToken);
