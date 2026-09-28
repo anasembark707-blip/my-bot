@@ -6,7 +6,10 @@ const {
     ButtonStyle, 
     EmbedBuilder, 
     ChannelType, 
-    PermissionsBitField 
+    PermissionsBitField,
+    SlashCommandBuilder,
+    REST,
+    Routes 
 } = require('discord.js');
 const express = require('express');
 
@@ -42,69 +45,102 @@ const CONFIG = {
     serverNameSuffix: " | 𝐌𝐑"                 // زخرفة السيرفر لروبلوكس
 };
 
-// تخزين نقاط الإداريين وأسئلة المستخدمين النشطين ونظام التنبيهات
+// تخزين نقاط الإداريين وأسئلة المستخدمين النشطين
 const staffPoints = new Map(); // staffId -> points
 const activeTickets = new Map(); // channelId -> { userAnswers, claimedBy, timer, step, userId }
 
-client.once('ready', () => {
+client.once('ready', async () => {
     console.log(`تم تسجيل الدخول بنجاح باسم ${client.user.tag}! البوت جاهز.`);
+
+    // تسجيل أوامر السلاش (Slash Commands) تلقائياً عند تشغيل البوت
+    const commands = [
+        new SlashCommandBuilder()
+            .setName('setup-verify')
+            .setDescription('إرسال بنر فتح تذكرة التفعيل الإداري'),
+        new SlashCommandBuilder()
+            .setName('pointict')
+            .setDescription('عرض نقاط الإداريين في تذاكر التفعيل'),
+        new SlashCommandBuilder()
+            .setName('restpointict')
+            .setDescription('تصفير نقاط الإداريين بالكامل')
+    ];
+
+    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN || process.env.TOKEN);
+    try {
+        await rest.put(
+            Routes.applicationCommands(client.user.id),
+            { body: commands },
+        );
+        console.log('تم تسجيل أوامر السلاش (Slash Commands) بنجاح! 🚀');
+    } catch (error) {
+        console.error('خطأ في تسجيل أوامر السلاش:', error);
+    }
 });
 
-// حدث واحد موحد للرسائل والأوامر والأسئلة التفاعلية
+// معالجة أوامر السلاش (Slash Commands)
+client.on('interactionCreate', async interaction => {
+    if (interaction.isChatInputCommand()) {
+        const { commandName, member, channel } = interaction;
+
+        if (commandName === 'setup-verify') {
+            if (!member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+                return interaction.reply({ content: "عذراً، هذا الأمر للأحكام الإدارية فقط! ❌", ephemeral: true });
+            }
+
+            const embed = new EmbedBuilder()
+                .setColor(0x00FF00)
+                .setTitle("من هنا يمكنكم العب والتفعيل معنا 💞.")
+                .setDescription(
+                    "فتح تذكرة ل تقديم على رتبة تصريح لعب 🎮\n\n" +
+                    "يمكنك من خلالها لعب الرولات معنا 🤝🏼\n\n" +
+                    "قم فقط ب الإجابة على الأسئلة التفاعليه 🤍.\n\n" +
+                    "وشكرا لكم...💞"
+                );
+
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('open_ticket')
+                    .setLabel('فتح تذكرة تفعيل ✅️')
+                    .setStyle(ButtonStyle.Success)
+            );
+
+            await channel.send({ embeds: [embed], components: [row] });
+            return interaction.reply({ content: "تم إرسال بنر التفعيل بنجاح! ✅", ephemeral: true });
+        }
+
+        if (commandName === 'pointict') {
+            if (!member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+                return interaction.reply({ content: "عذراً، هذا الأمر للأحكام الإدارية فقط! ❌", ephemeral: true });
+            }
+            
+            const sortedPoints = [...staffPoints.entries()].sort((a, b) => b[1] - a[1]);
+            let desc = sortedPoints.length > 0 
+                ? sortedPoints.map(([id, pts], index) => `${index + 1} <@${id}> : ${pts}`).join('\n')
+                : 'لا توجد نقاط مسجلة حتى الآن.';
+
+            const embed = new EmbedBuilder()
+                .setColor(0x00FF00)
+                .setTitle("نقاط تذكرة التفعيل")
+                .setDescription(desc);
+
+            return interaction.reply({ embeds: [embed] });
+        }
+
+        if (commandName === 'restpointict') {
+            if (!member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+                return interaction.reply({ content: "عذراً، هذا الأمر للأحكام الإدارية فقط! ❌", ephemeral: true });
+            }
+            staffPoints.clear();
+            return interaction.reply({ content: "تم تصفير جميع نقاط الإداريين بنجاح! 🔄", ephemeral: true });
+        }
+    }
+});
+
+// معالجة الرسائل والأسئلة التفاعلية داخل التذاكر
 client.on('messageCreate', async message => {
     if (message.author.bot) return;
 
-    // 1. معالجة الأوامر الإدارية
-    if (message.content === '!setup-verify') {
-        if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) return;
-
-        const embed = new EmbedBuilder()
-            .setColor(0x00FF00)
-            .setTitle("من هنا يمكنكم العب والتفعيل معنا 💞.")
-            .setDescription(
-                "فتح تذكرة ل تقديم على رتبة تصريح لعب 🎮\n\n" +
-                "يمكنك من خلالها لعب الرولات معنا 🤝🏼\n\n" +
-                "قم فقط ب الإجابة على الأسئلة التفاعليه 🤍.\n\n" +
-                "وشكرا لكم...💞"
-            );
-
-        const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-                .setCustomId('open_ticket')
-                .setLabel('فتح تذكرة تفعيل ✅️')
-                .setStyle(ButtonStyle.Success)
-        );
-
-        await message.channel.send({ embeds: [embed], components: [row] });
-        await message.delete().catch(() => {});
-        return;
-    }
-
-    if (message.content === '!pointict') {
-        if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) return;
-        
-        const sortedPoints = [...staffPoints.entries()].sort((a, b) => b[1] - a[1]);
-        let desc = sortedPoints.length > 0 
-            ? sortedPoints.map(([id, pts], index) => `${index + 1} <@${id}> : ${pts}`).join('\n')
-            : 'لا توجد نقاط مسجلة حتى الآن.';
-
-        const embed = new EmbedBuilder()
-            .setColor(0x00FF00)
-            .setTitle("نقاط تذكرة التفعيل")
-            .setDescription(desc);
-
-        await message.channel.send({ embeds: [embed] });
-        return;
-    }
-
-    if (message.content === '!restpointict') {
-        if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) return;
-        staffPoints.clear();
-        await message.reply("تم تصفير جميع نقاط الإداريين بنجاح! 🔄");
-        return;
-    }
-
-    // 2. معالجة إجابات الأسئلة داخل التذاكر
+    // معالجة إجابات الأسئلة داخل التذاكر
     const ticketData = activeTickets.get(message.channel.id);
     if (ticketData && message.author.id === ticketData.userId) {
         if (ticketData.timer) {
@@ -250,7 +286,7 @@ client.on('interactionCreate', async interaction => {
         return interaction.reply({ content: `تم فتح تذكرتك بنجاح هنا: <#${ticketChannel.id}> 🎟️`, ephemeral: true });
     }
 
-    // ب) استلام التذكرة (مع تحديث الأيدي واسم الإداري المستلم في الشات ورسالة الترحيب)
+    // ب) استلام التذكرة
     if (customId === 'claim_ticket') {
         if (!member.roles.cache.has(CONFIG.roleStaff)) {
             return interaction.reply({ content: "هذا الزر خاص بالفريق الإداري فقط! ❌", ephemeral: true });
@@ -266,7 +302,6 @@ client.on('interactionCreate', async interaction => {
         const currentPoints = staffPoints.get(user.id) || 0;
         staffPoints.set(user.id, currentPoints + 1);
 
-        // تعديل أذونات القناة بحيث يظهر الإداري المستلم ويُعرف العضو ومن استلم تذكرته بدقة
         await channel.send({
             content: `🔒 **تم استلام التذكرة بنجاح!**\n👤 **الإداري المسؤول:** <@${user.id}> (أيدي: \`${user.id}\`)\n✨ تم منح الإداري نقطة واحدة (+1).\n📊 إجمالي نقاطه الحالية = **${currentPoints + 1}**`
         });
@@ -304,7 +339,7 @@ client.on('interactionCreate', async interaction => {
             );
             await channel.send({ content: `<@&${CONFIG.roleStaff}>\nالرجاء الإستلام`, components: [row] });
         }
-        await interaction.reply({ content: "تم ترك التذكرة.", ephemeral: true });
+        return interaction.reply({ content: "تم ترك التذكرة.", ephemeral: true });
     }
 
     // هـ) حذف التذكرة الفوري
@@ -319,7 +354,7 @@ client.on('interactionCreate', async interaction => {
             new ButtonBuilder().setCustomId('opt_warn').setLabel('تنبيه العضو ⚠️').setStyle(ButtonStyle.Secondary),
             new ButtonBuilder().setCustomId('opt_summon').setLabel('استدعاء الاداري ☑️').setStyle(ButtonStyle.Success)
         );
-        await interaction.reply({ content: "خيارات التذكرة ⚙️", components: [row], ephemeral: true });
+        return interaction.reply({ content: "خيارات التذكرة ⚙️", components: [row], ephemeral: true });
     }
 
     // ز) تنبيه العضو ⚠️
@@ -335,7 +370,7 @@ client.on('interactionCreate', async interaction => {
         }, 5 * 60 * 1000);
 
         ticketData.timer = timer;
-        await interaction.reply({ content: "تم تفعيل التنبيه.", ephemeral: true });
+        return interaction.reply({ content: "تم تفعيل التنبيه.", ephemeral: true });
     }
 
     // حـ) استدعاء الإداري ☑️
@@ -346,7 +381,7 @@ client.on('interactionCreate', async interaction => {
         } else {
             await channel.send(`استدعاء الاداري ☑️\n<@&${CONFIG.roleStaff}> الرجاء الرد على التذكرة!`);
         }
-        await interaction.reply({ content: "تم الاستدعاء.", ephemeral: true });
+        return interaction.reply({ content: "تم الاستدعاء.", ephemeral: true });
     }
 
     // ط) قبول الطلب
@@ -385,16 +420,16 @@ client.on('interactionCreate', async interaction => {
         }
 
         setTimeout(() => channel.delete().catch(() => {}), 15000);
-        await interaction.reply({ content: "تم قبول التفعيل بنجاح.", ephemeral: true });
+        return interaction.reply({ content: "تم قبول التفعيل بنجاح.", ephemeral: true });
     }
 
     // ي) رفض الطلب
     if (customId === 'reject_ticket') {
         await channel.send("تم رفض الطلب ❌. سيتم إغلاق التذكرة...");
         setTimeout(() => channel.delete().catch(() => {}), 10000);
-        await interaction.reply({ content: "تم رفض الطلب.", ephemeral: true });
+        return interaction.reply({ content: "تم رفض الطلب.", ephemeral: true });
     }
 });
 
 // تسجيل الدخول للبوت
-client.login(process.env.TOKEN);
+client.login(process.env.DISCORD_TOKEN || process.env.TOKEN);
