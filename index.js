@@ -44,7 +44,7 @@ const CONFIG = {
 
 // تخزين نقاط الإداريين وأسئلة المستخدمين النشطين ونظام التنبيهات
 const staffPoints = new Map(); // staffId -> points
-const activeTickets = new Map(); // channelId -> { userAnswers, claimedBy, timer }
+const activeTickets = new Map(); // channelId -> { userAnswers, claimedBy, timer, step, userId }
 
 client.once('ready', () => {
     console.log(`تم تسجيل الدخول بنجاح باسم ${client.user.tag}! البوت جاهز.`);
@@ -240,7 +240,9 @@ client.on('interactionCreate', async interaction => {
         activeTickets.set(ticketChannel.id, {
             userId: user.id,
             step: 1,
-            answers: {}
+            answers: {},
+            claimedBy: null,
+            timer: null
         });
 
         await ticketChannel.send(`<@${user.id}> **السؤال 1/6:** ما هو اسمك؟`);
@@ -248,7 +250,7 @@ client.on('interactionCreate', async interaction => {
         return interaction.reply({ content: `تم فتح تذكرتك بنجاح هنا: <#${ticketChannel.id}> 🎟️`, ephemeral: true });
     }
 
-    // ب) استلام التذكرة
+    // ب) استلام التذكرة (مع تحديث الأيدي واسم الإداري المستلم في الشات ورسالة الترحيب)
     if (customId === 'claim_ticket') {
         if (!member.roles.cache.has(CONFIG.roleStaff)) {
             return interaction.reply({ content: "هذا الزر خاص بالفريق الإداري فقط! ❌", ephemeral: true });
@@ -256,7 +258,7 @@ client.on('interactionCreate', async interaction => {
 
         const ticketData = activeTickets.get(channel.id);
         if (ticketData && ticketData.claimedBy) {
-            return interaction.reply({ content: "تم استلام هذه التذكرة مسبقاً من قِبل إداري آخر! ⚠️", ephemeral: true });
+            return interaction.reply({ content: `تم استلام هذه التذكرة مسبقاً من قِبل الإداري <@${ticketData.claimedBy}>! ⚠️`, ephemeral: true });
         }
 
         if (ticketData) ticketData.claimedBy = user.id;
@@ -264,9 +266,12 @@ client.on('interactionCreate', async interaction => {
         const currentPoints = staffPoints.get(user.id) || 0;
         staffPoints.set(user.id, currentPoints + 1);
 
-        await interaction.reply({
-            content: `**تم استلام التذكرة !**\nتم منح اليك نقطة 1\nعدد نقاطك = ${currentPoints + 1}`
+        // تعديل أذونات القناة بحيث يظهر الإداري المستلم ويُعرف العضو ومن استلم تذكرته بدقة
+        await channel.send({
+            content: `🔒 **تم استلام التذكرة بنجاح!**\n👤 **الإداري المسؤول:** <@${user.id}> (أيدي: \`${user.id}\`)\n✨ تم منح الإداري نقطة واحدة (+1).\n📊 إجمالي نقاطه الحالية = **${currentPoints + 1}**`
         });
+
+        return interaction.reply({ content: "تم استلام التذكرة بنجاح وتسجيل النقطة لك.", ephemeral: true });
     }
 
     // جـ) إغلاق التذكرة
@@ -290,9 +295,9 @@ client.on('interactionCreate', async interaction => {
         if (ticketData && ticketData.claimedBy === user.id) {
             ticketData.claimedBy = null;
             const currentPoints = staffPoints.get(user.id) || 1;
-            staffPoints.set(user.id, currentPoints - 1);
+            staffPoints.set(user.id, Math.max(0, currentPoints - 1));
 
-            await channel.send(`**ترك التذكرة 🚫**\nالاداري المستلم ترك التذكرة <@${user.id}>\nتم خصم منك نقطة 1`);
+            await channel.send(`**ترك التذكرة 🚫**\nالإداري المستلم ترك التذكرة <@${user.id}>\nتم خصم نقطة واحدة منك.`);
             
             const row = new ActionRowBuilder().addComponents(
                 new ButtonBuilder().setCustomId('claim_ticket').setLabel('استلام التذكرة ✅️').setStyle(ButtonStyle.Success)
@@ -337,7 +342,7 @@ client.on('interactionCreate', async interaction => {
     if (customId === 'opt_summon') {
         const ticketData = activeTickets.get(channel.id);
         if (ticketData && ticketData.claimedBy) {
-            await channel.send(`استدعاء الاداري ☑️\nتم استدعاء الاداري <@${ticketData.claimedBy}>`);
+            await channel.send(`استدعاء الاداري ☑️\nتم استدعاء الاداري المسؤول <@${ticketData.claimedBy}>`);
         } else {
             await channel.send(`استدعاء الاداري ☑️\n<@&${CONFIG.roleStaff}> الرجاء الرد على التذكرة!`);
         }
@@ -367,7 +372,7 @@ client.on('interactionCreate', async interaction => {
                 .setTitle("سجل قبول تفعيل جديد ✅")
                 .setDescription(
                     `**العضو:** <@${ticketData.userId}>\n` +
-                    `**المستلم:** <@${user.id}>\n` +
+                    `**المستلم:** <@${user.id}> (أيدي: \`${user.id}\`)\n` +
                     `**التاريخ:** <t:${Math.floor(Date.now() / 1000)}:F>\n\n` +
                     `1 الإجابة: ${ticketData.answers[1]}\n` +
                     `2 الإجابة: ${ticketData.answers[2]}\n` +
