@@ -13,7 +13,6 @@ const {
 } = require('discord.js');
 const express = require('express');
 
-// إعداد سيرفر الويب لكي يتعرف Render على البورت ولا يفصل البوت
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -34,25 +33,22 @@ const client = new Client({
     ]
 });
 
-// أيديات الرتب والروم والكاتجوري المستخرجة من طلبك
 const CONFIG = {
-    roleVerified: "1546173143180247043",      // رتبة مفعل
-    roleUnverified: "1546173144572624926",    // رتبة غير مفعل (تنقال عند القبول)
-    rolePlayPass: "1546173141766639718",      // رتبة تصريح لعب (تُعطى عند القبول)
-    roleStaff: "1546173030617710773",         // الفريق الاداري
-    logChannel: "1553726188470669342",        // روم لوق تكتات تفعيل
-    categoryTickets: "1553517079636742164",   // كاتجوري تكتات تفعيل
-    serverNameSuffix: " | 𝐌𝐑"                 // زخرفة السيرفر لروبلوكس
+    roleVerified: "1546173143180247043",      
+    roleUnverified: "1546173144572624926",    
+    rolePlayPass: "1546173141766639718",      
+    roleStaff: "1546173030617710773",         
+    logChannel: "1553726188470669342",        
+    categoryTickets: "1553517079636742164",   
+    serverNameSuffix: " | 𝐌𝐑"                 
 };
 
-// تخزين نقاط الإداريين وأسئلة المستخدمين النشطين
-const staffPoints = new Map(); // staffId -> points
-const activeTickets = new Map(); // channelId -> { userAnswers, claimedBy, timer, step, userId }
+const staffPoints = new Map(); 
+const activeTickets = new Map(); 
 
 client.once('ready', async () => {
     console.log(`تم تسجيل الدخول بنجاح باسم ${client.user.tag}! البوت جاهز.`);
 
-    // تسجيل أوامر السلاش (Slash Commands) تلقائياً عند تشغيل البوت
     const commands = [
         new SlashCommandBuilder()
             .setName('setup-verify')
@@ -65,7 +61,8 @@ client.once('ready', async () => {
             .setDescription('تصفير نقاط الإداريين بالكامل')
     ];
 
-    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN || process.env.TOKEN);
+    const botToken = process.env.DISCORD_TOKEN || process.env.TOKEN;
+    const rest = new REST({ version: '10' }).setToken(botToken);
     try {
         await rest.put(
             Routes.applicationCommands(client.user.id),
@@ -77,70 +74,9 @@ client.once('ready', async () => {
     }
 });
 
-// معالجة أوامر السلاش (Slash Commands)
-client.on('interactionCreate', async interaction => {
-    if (interaction.isChatInputCommand()) {
-        const { commandName, member, channel } = interaction;
-
-        if (commandName === 'setup-verify') {
-            if (!member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-                return interaction.reply({ content: "عذراً، هذا الأمر للأحكام الإدارية فقط! ❌", ephemeral: true });
-            }
-
-            const embed = new EmbedBuilder()
-                .setColor(0x00FF00)
-                .setTitle("من هنا يمكنكم العب والتفعيل معنا 💞.")
-                .setDescription(
-                    "فتح تذكرة ل تقديم على رتبة تصريح لعب 🎮\n\n" +
-                    "يمكنك من خلالها لعب الرولات معنا 🤝🏼\n\n" +
-                    "قم فقط ب الإجابة على الأسئلة التفاعليه 🤍.\n\n" +
-                    "وشكرا لكم...💞"
-                );
-
-            const row = new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                    .setCustomId('open_ticket')
-                    .setLabel('فتح تذكرة تفعيل ✅️')
-                    .setStyle(ButtonStyle.Success)
-            );
-
-            await channel.send({ embeds: [embed], components: [row] });
-            return interaction.reply({ content: "تم إرسال بنر التفعيل بنجاح! ✅", ephemeral: true });
-        }
-
-        if (commandName === 'pointict') {
-            if (!member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-                return interaction.reply({ content: "عذراً، هذا الأمر للأحكام الإدارية فقط! ❌", ephemeral: true });
-            }
-            
-            const sortedPoints = [...staffPoints.entries()].sort((a, b) => b[1] - a[1]);
-            let desc = sortedPoints.length > 0 
-                ? sortedPoints.map(([id, pts], index) => `${index + 1} <@${id}> : ${pts}`).join('\n')
-                : 'لا توجد نقاط مسجلة حتى الآن.';
-
-            const embed = new EmbedBuilder()
-                .setColor(0x00FF00)
-                .setTitle("نقاط تذكرة التفعيل")
-                .setDescription(desc);
-
-            return interaction.reply({ embeds: [embed] });
-        }
-
-        if (commandName === 'restpointict') {
-            if (!member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-                return interaction.reply({ content: "عذراً، هذا الأمر للأحكام الإدارية فقط! ❌", ephemeral: true });
-            }
-            staffPoints.clear();
-            return interaction.reply({ content: "تم تصفير جميع نقاط الإداريين بنجاح! 🔄", ephemeral: true });
-        }
-    }
-});
-
-// معالجة الرسائل والأسئلة التفاعلية داخل التذاكر
 client.on('messageCreate', async message => {
     if (message.author.bot) return;
 
-    // معالجة إجابات الأسئلة داخل التذاكر
     const ticketData = activeTickets.get(message.channel.id);
     if (ticketData && message.author.id === ticketData.userId) {
         if (ticketData.timer) {
@@ -223,13 +159,67 @@ client.on('messageCreate', async message => {
     }
 });
 
-// التعامل مع الأزرار والتفاعلات
 client.on('interactionCreate', async interaction => {
+    if (interaction.isChatInputCommand()) {
+        const { commandName, member, channel } = interaction;
+
+        if (commandName === 'setup-verify') {
+            if (!member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+                return interaction.reply({ content: "عذراً، هذا الأمر للأحكام الإدارية فقط! ❌", ephemeral: true });
+            }
+
+            const embed = new EmbedBuilder()
+                .setColor(0x00FF00)
+                .setTitle("من هنا يمكنكم العب والتفعيل معنا 💞.")
+                .setDescription(
+                    "فتح تذكرة ل تقديم على رتبة تصريح لعب 🎮\n\n" +
+                    "يمكنك من خلالها لعب الرولات معنا 🤝🏼\n\n" +
+                    "قم فقط ب الإجابة على الأسئلة التفاعليه 🤍.\n\n" +
+                    "وشكرا لكم...💞"
+                );
+
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('open_ticket')
+                    .setLabel('فتح تذكرة تفعيل ✅️')
+                    .setStyle(ButtonStyle.Success)
+            );
+
+            await channel.send({ embeds: [embed], components: [row] });
+            return interaction.reply({ content: "تم إرسال بنر التفعيل بنجاح! ✅", ephemeral: true });
+        }
+
+        if (commandName === 'pointict') {
+            if (!member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+                return interaction.reply({ content: "عذراً، هذا الأمر للأحكام الإدارية فقط! ❌", ephemeral: true });
+            }
+            
+            const sortedPoints = [...staffPoints.entries()].sort((a, b) => b[1] - a[1]);
+            let desc = sortedPoints.length > 0 
+                ? sortedPoints.map(([id, pts], index) => `${index + 1} <@${id}> : ${pts}`).join('\n')
+                : 'لا توجد نقاط مسجلة حتى الآن.';
+
+            const embed = new EmbedBuilder()
+                .setColor(0x00FF00)
+                .setTitle("نقاط تذكرة التفعيل")
+                .setDescription(desc);
+
+            return interaction.reply({ embeds: [embed] });
+        }
+
+        if (commandName === 'restpointict') {
+            if (!member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+                return interaction.reply({ content: "عذراً، هذا الأمر للأحكام الإدارية فقط! ❌", ephemeral: true });
+            }
+            staffPoints.clear();
+            return interaction.reply({ content: "تم تصفير جميع نقاط الإداريين بنجاح! 🔄", ephemeral: true });
+        }
+    }
+
     if (!interaction.isButton()) return;
 
     const { customId, channel, guild, member, user } = interaction;
 
-    // أ) فتح التذكرة
     if (customId === 'open_ticket') {
         if (member.roles.cache.has(CONFIG.roleVerified)) {
             return interaction.reply({ content: "أنت مفعل مسبقاً ولا تحتاج لفتح تذكرة! ❌", ephemeral: true });
@@ -286,7 +276,6 @@ client.on('interactionCreate', async interaction => {
         return interaction.reply({ content: `تم فتح تذكرتك بنجاح هنا: <#${ticketChannel.id}> 🎟️`, ephemeral: true });
     }
 
-    // ب) استلام التذكرة
     if (customId === 'claim_ticket') {
         if (!member.roles.cache.has(CONFIG.roleStaff)) {
             return interaction.reply({ content: "هذا الزر خاص بالفريق الإداري فقط! ❌", ephemeral: true });
@@ -309,7 +298,6 @@ client.on('interactionCreate', async interaction => {
         return interaction.reply({ content: "تم استلام التذكرة بنجاح وتسجيل النقطة لك.", ephemeral: true });
     }
 
-    // جـ) إغلاق التذكرة
     if (customId === 'close_ticket') {
         if (!member.roles.cache.has(CONFIG.roleStaff)) {
             return interaction.reply({ content: "هذا الزر خاص بالفريق الإداري فقط! ❌", ephemeral: true });
@@ -324,7 +312,6 @@ client.on('interactionCreate', async interaction => {
         await interaction.reply({ content: "تم إرسال خيارات الإغلاق.", ephemeral: true });
     }
 
-    // د) ترك التذكرة من الإداري
     if (customId === 'leave_ticket') {
         const ticketData = activeTickets.get(channel.id);
         if (ticketData && ticketData.claimedBy === user.id) {
@@ -342,13 +329,11 @@ client.on('interactionCreate', async interaction => {
         return interaction.reply({ content: "تم ترك التذكرة.", ephemeral: true });
     }
 
-    // هـ) حذف التذكرة الفوري
     if (customId === 'delete_ticket_confirm') {
         await channel.send("حذف التذكرة 🗑\nسيتم حذف التذكرة...");
         setTimeout(() => channel.delete().catch(() => {}), 3000);
     }
 
-    // و) خيارات التذكرة ⚙️
     if (customId === 'ticket_options') {
         const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('opt_warn').setLabel('تنبيه العضو ⚠️').setStyle(ButtonStyle.Secondary),
@@ -357,7 +342,6 @@ client.on('interactionCreate', async interaction => {
         return interaction.reply({ content: "خيارات التذكرة ⚙️", components: [row], ephemeral: true });
     }
 
-    // ز) تنبيه العضو ⚠️
     if (customId === 'opt_warn') {
         const ticketData = activeTickets.get(channel.id);
         if (!ticketData) return;
@@ -373,7 +357,6 @@ client.on('interactionCreate', async interaction => {
         return interaction.reply({ content: "تم تفعيل التنبيه.", ephemeral: true });
     }
 
-    // حـ) استدعاء الإداري ☑️
     if (customId === 'opt_summon') {
         const ticketData = activeTickets.get(channel.id);
         if (ticketData && ticketData.claimedBy) {
@@ -384,7 +367,6 @@ client.on('interactionCreate', async interaction => {
         return interaction.reply({ content: "تم الاستدعاء.", ephemeral: true });
     }
 
-    // ط) قبول الطلب
     if (customId === 'accept_ticket') {
         const ticketData = activeTickets.get(channel.id);
         if (!ticketData) return;
@@ -423,7 +405,6 @@ client.on('interactionCreate', async interaction => {
         return interaction.reply({ content: "تم قبول التفعيل بنجاح.", ephemeral: true });
     }
 
-    // ي) رفض الطلب
     if (customId === 'reject_ticket') {
         await channel.send("تم رفض الطلب ❌. سيتم إغلاق التذكرة...");
         setTimeout(() => channel.delete().catch(() => {}), 10000);
@@ -431,5 +412,5 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
-// تسجيل الدخول للبوت
-client.login(process.env.DISCORD_TOKEN || process.env.TOKEN);
+const tokenToUse = process.env.DISCORD_TOKEN || process.env.TOKEN;
+client.login(tokenToUse);
