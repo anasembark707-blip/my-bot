@@ -8,6 +8,20 @@ const {
     ChannelType, 
     PermissionsBitField 
 } = require('discord.js');
+const express = require('express');
+
+// --- إعدادات سيرفر الويب الوهمي (عشان Render المجاني) ---
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get('/', (req, res) => {
+    res.send('Bot is alive and running!');
+});
+
+app.listen(PORT, () => {
+    console.log(`Web server is listening on port ${PORT}`);
+});
+// --------------------------------------------------------
 
 const client = new Client({
     intents: [
@@ -34,7 +48,7 @@ const staffPoints = new Map(); // staffId -> points
 const activeTickets = new Map(); // channelId -> { userAnswers, claimedBy, timer }
 
 client.once('ready', () => {
-    console.log(`تم تسجيل الدخول بنجاح باسم ${client.user.tag}! البوت جاهز.`);
+    console.log(`تم تسجيل الدخول بنجاح باسم ${client.user.tag}! البوت جاهز وسيرفر الويب شغال.`);
 });
 
 // 1. أمر إرسال رسالة التفعيل الأساسية
