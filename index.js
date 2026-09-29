@@ -231,7 +231,7 @@ client.on('interactionCreate', async interaction => {
     if (customId === 'open_ticket') {
         await interaction.deferReply({ ephemeral: true });
 
-        const ticketName = `تكت-${user.username}`;
+        const ticketName = `Ticket-${user.username}`;
         const ticketChannel = await guild.channels.create({
             name: ticketName,
             type: ChannelType.GuildText,
