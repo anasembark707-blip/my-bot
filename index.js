@@ -41,7 +41,7 @@ const CONFIG = {
     roleStaff: "1546173030617710773",         
     logChannel: "1553726188470669342",        
     categoryTickets: "1553517079636742164",   
-    serverNameSuffix: " 𝐌𝐑 | "                 
+    serverNameSuffix: " | 𝐌𝐑"                 
 };
 
 const staffPoints = new Map(); 
@@ -231,7 +231,7 @@ client.on('interactionCreate', async interaction => {
     if (customId === 'open_ticket') {
         await interaction.deferReply({ ephemeral: true });
 
-        const ticketName = `ticket-${user.username}`;
+        const ticketName = `تكت-${user.username}`;
         const ticketChannel = await guild.channels.create({
             name: ticketName,
             type: ChannelType.GuildText,
@@ -258,7 +258,7 @@ client.on('interactionCreate', async interaction => {
             .setDescription("انت الان بـ الأسئلة التفاعلية لـ التفعيل قم بـ الإجابة عليها 💞.");
 
         const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('ticket_options').setLabel('خيارات التذكرة ⚙️').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId('ticket_options').setLabel('خيارات التذكرة ⚙️️').setStyle(ButtonStyle.Primary),
             new ButtonBuilder().setCustomId('close_ticket').setLabel('إغلاق التذكرة ❌️').setStyle(ButtonStyle.Danger),
             new ButtonBuilder().setCustomId('claim_ticket').setLabel('استلام التذكرة ✅️').setStyle(ButtonStyle.Success)
         );
@@ -279,7 +279,7 @@ client.on('interactionCreate', async interaction => {
 
         await ticketChannel.send(`<@${user.id}> **السؤال 1/6:** ما هو اسمك؟`);
 
-        return interaction.editReply({ content: `تم فتح تذكرتك بنجاح هنا: <#${ticketChannel.id}> 🎟️` });
+        return interaction.editReply({ content: `تم فتح تذكرتك بنجاح هنا: <#${ticketChannel.id}> 🎟️️` });
     }
 
     if (customId === 'claim_ticket') {
@@ -328,7 +328,7 @@ client.on('interactionCreate', async interaction => {
             await channel.send(`**ترك التذكرة 🚫**\nالإداري المستلم ترك التذكرة <@${user.id}>\nتم خصم نقطة واحدة منك.`);
             
             const row = new ActionRowBuilder().addComponents(
-                new ButtonBuilder().setCustomId('claim_ticket').setLabel('استلام التذكرة ✅️').setStyle(ButtonStyle.Success)
+                new ButtonBuilder().setCustomId('claim_ticket').setLabel('استلام التذكرة ✅️️').setStyle(ButtonStyle.Success)
             );
             await channel.send({ content: `<@&${CONFIG.roleStaff}>\nالرجاء الإستلام`, components: [row] });
         }
@@ -387,7 +387,8 @@ client.on('interactionCreate', async interaction => {
             await targetMember.roles.remove(CONFIG.roleUnverified);
             
             const robloxUser = ticketData.answers[3] || targetMember.user.username;
-            await targetNameMember.setNickname(`${CONFIG.serverNameSuffix.trim()} ${robloxUser}`).catch(() => {});
+            // الترتيب المطلوب: يوزر روبلوكس (على اليمين) + اللاحقة (العمود و MR على اليسار)
+            await targetMember.setNickname(`${robloxUser}${CONFIG.serverNameSuffix}`).catch(() => {});
         }
 
         await channel.send("تم قبول الطلب ✅. سيتم إغلاق التذكرة خلال لحظات...");
