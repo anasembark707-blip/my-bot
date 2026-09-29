@@ -50,7 +50,6 @@ const activeTickets = new Map();
 client.once('ready', async () => {
     console.log(`تم تسجيل الدخول بنجاح باسم ${client.user.tag}! البوت جاهز.`);
 
-    // ضبط الحالة ليظهر أونلاين وبشكل صحيح تماماً في السيرفر
     client.user.setPresence({
         activities: [{ name: 'تكتات التفعيل 🎮', type: ActivityType.Watching }],
         status: 'online',
@@ -259,7 +258,7 @@ client.on('interactionCreate', async interaction => {
 
         const embed = new EmbedBuilder()
             .setColor(0x00FF00)
-            .setTitle("تم فتح تذكرة تفعيل ✅️.")
+            .setTitle("تم فتح تذكرة تفعيل ✅️️.")
             .setDescription("انت الان بـ الأسئلة التفاعلية لـ التفعيل قم بـ الإجابة عليها 💞.");
 
         const row = new ActionRowBuilder().addComponents(
