@@ -387,7 +387,7 @@ client.on('interactionCreate', async interaction => {
             await targetMember.roles.remove(CONFIG.roleUnverified);
             
             const robloxUser = ticketData.answers[3] || targetMember.user.username;
-            await targetMember.setNickname(`${robloxUser} ${CONFIG.serverNameSuffix.trim()}`).catch(() => {});
+            await targetNameMember.setNickname(`${CONFIG.serverNameSuffix.trim()} ${robloxUser}`).catch(() => {});
         }
 
         await channel.send("تم قبول الطلب ✅. سيتم إغلاق التذكرة خلال لحظات...");
