@@ -9,7 +9,8 @@ const {
     PermissionsBitField,
     SlashCommandBuilder,
     REST,
-    Routes 
+    Routes,
+    ActivityType 
 } = require('discord.js');
 const express = require('express');
 
@@ -49,9 +50,9 @@ const activeTickets = new Map();
 client.once('ready', async () => {
     console.log(`تم تسجيل الدخول بنجاح باسم ${client.user.tag}! البوت جاهز.`);
 
-    // إجبار البوت ليظهر أونلاين أخضر مع حالة نشاط
+    // ضبط الحالة ليظهر أونلاين وبشكل صحيح تماماً في السيرفر
     client.user.setPresence({
-        activities: [{ name: 'نظام التكتات والفعاليات 🎫', type: 3 }],
+        activities: [{ name: 'تكتات التفعيل 🎮', type: ActivityType.Watching }],
         status: 'online',
     });
 
