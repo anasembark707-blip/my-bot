@@ -229,10 +229,6 @@ client.on('interactionCreate', async interaction => {
     const { customId, channel, guild, member, user } = interaction;
 
     if (customId === 'open_ticket') {
-        if (member.roles.cache.has(CONFIG.roleVerified)) {
-            return interaction.reply({ content: "أنت مفعل مسبقاً ولا تحتاج لفتح تذكرة! ❌", ephemeral: true });
-        }
-
         await interaction.deferReply({ ephemeral: true });
 
         const ticketName = `تكت-${user.username}`;
@@ -258,7 +254,7 @@ client.on('interactionCreate', async interaction => {
 
         const embed = new EmbedBuilder()
             .setColor(0x00FF00)
-            .setTitle("تم فتح تذكرة تفعيل ✅️️.")
+            .setTitle("تم فتح تذكرة تفعيل ✅.")
             .setDescription("انت الان بـ الأسئلة التفاعلية لـ التفعيل قم بـ الإجابة عليها 💞.");
 
         const row = new ActionRowBuilder().addComponents(
@@ -347,7 +343,7 @@ client.on('interactionCreate', async interaction => {
     if (customId === 'ticket_options') {
         const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('opt_warn').setLabel('تنبيه العضو ⚠️').setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId('opt_summon').setLabel('استدعاء الاداري ☑️').setStyle(ButtonStyle.Success)
+            new ButtonBuilder().setCustomId('opt_summon').setLabel('استدعاء الاداري ☑').setStyle(ButtonStyle.Success)
         );
         return interaction.reply({ content: "خيارات التذكرة ⚙️", components: [row], ephemeral: true });
     }
@@ -378,6 +374,10 @@ client.on('interactionCreate', async interaction => {
     }
 
     if (customId === 'accept_ticket') {
+        if (!member.roles.cache.has(CONFIG.roleStaff)) {
+            return interaction.reply({ content: "عذراً، أزرار القبول والرفض خاصة بالفريق الإداري فقط! ❌", ephemeral: true });
+        }
+
         const ticketData = activeTickets.get(channel.id);
         if (!ticketData) return;
 
@@ -387,7 +387,7 @@ client.on('interactionCreate', async interaction => {
             await targetMember.roles.remove(CONFIG.roleUnverified);
             
             const robloxUser = ticketData.answers[3] || targetMember.user.username;
-            await targetMember.setNickname(`${robloxUser}${CONFIG.serverNameSuffix}`).catch(() => {});
+            await targetMember.setNickname(`${CONFIG.serverNameSuffix.trim()} ${robloxUser}`).catch(() => {});
         }
 
         await channel.send("تم قبول الطلب ✅. سيتم إغلاق التذكرة خلال لحظات...");
@@ -398,15 +398,15 @@ client.on('interactionCreate', async interaction => {
                 .setColor(0x00FF00)
                 .setTitle("سجل قبول تفعيل جديد ✅")
                 .setDescription(
-                    `**العضو:** <@${ticketData.userId}>\n` +
-                    `**المستلم:** <@${user.id}> (أيدي: \`${user.id}\`)\n` +
-                    `**التاريخ:** <t:${Math.floor(Date.now() / 1000)}:F>\n\n` +
-                    `1 الإجابة: ${ticketData.answers[1]}\n` +
-                    `2 الإجابة: ${ticketData.answers[2]}\n` +
-                    `3 الإجابة: ${ticketData.answers[3]}\n` +
-                    `4 الإجابة: [صورة](${ticketData.answers[4]})\n` +
-                    `5 الإجابة: [صورة](${ticketData.answers[5]})\n` +
-                    `6 الإجابة: ${ticketData.answers[6]}`
+                    `**العضو صاحب التذكرة:** <@${ticketData.userId}>\n` +
+                    `**الإداري المسؤول:** <@${user.id}> (أيدي: \`${user.id}\`)\n` +
+                    `**التاريخ والوقت:** <t:${Math.floor(Date.now() / 1000)}:F>\n\n` +
+                    `١ الإجابة : ${ticketData.answers[1]}\n` +
+                    `٢ الإجابة : ${ticketData.answers[2]}\n` +
+                    `٣ الإجابة : ${ticketData.answers[3]}\n` +
+                    `٤ الإجابة : [صورة](${ticketData.answers[4]})\n` +
+                    `٥ الإجابة : [صورة](${ticketData.answers[5]})\n` +
+                    `٦ الإجابة : ${ticketData.answers[6]}`
                 );
             await logChan.send({ embeds: [logEmbed] });
         }
@@ -416,7 +416,34 @@ client.on('interactionCreate', async interaction => {
     }
 
     if (customId === 'reject_ticket') {
+        if (!member.roles.cache.has(CONFIG.roleStaff)) {
+            return interaction.reply({ content: "عذراً، أزرار القبول والرفض خاصة بالفريق الإداري فقط! ❌", ephemeral: true });
+        }
+
+        const ticketData = activeTickets.get(channel.id);
+        if (!ticketData) return;
+
         await channel.send("تم رفض الطلب ❌. سيتم إغلاق التذكرة...");
+
+        const logChan = guild.channels.cache.get(CONFIG.logChannel);
+        if (logChan) {
+            const logEmbed = new EmbedBuilder()
+                .setColor(0xFF0000)
+                .setTitle("سجل رفض تفعيل ❌")
+                .setDescription(
+                    `**العضو صاحب التذكرة:** <@${ticketData.userId}>\n` +
+                    `**الإداري المسؤول:** <@${user.id}> (أيدي: \`${user.id}\`)\n` +
+                    `**التاريخ والوقت:** <t:${Math.floor(Date.now() / 1000)}:F>\n\n` +
+                    `١ الإجابة : ${ticketData.answers[1]}\n` +
+                    `٢ الإجابة : ${ticketData.answers[2]}\n` +
+                    `٣ الإجابة : ${ticketData.answers[3]}\n` +
+                    `٤ الإجابة : [صورة](${ticketData.answers[4]})\n` +
+                    `٥ الإجابة : [صورة](${ticketData.answers[5]})\n` +
+                    `٦ الإجابة : ${ticketData.answers[6]}`
+                );
+            await logChan.send({ embeds: [logEmbed] });
+        }
+
         setTimeout(() => channel.delete().catch(() => {}), 10000);
         return interaction.reply({ content: "تم رفض الطلب.", ephemeral: true });
     }
