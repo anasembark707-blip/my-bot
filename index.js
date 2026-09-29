@@ -41,7 +41,7 @@ const CONFIG = {
     roleStaff: "1546173030617710773",         
     logChannel: "1553726188470669342",        
     categoryTickets: "1553517079636742164",   
-    serverNameSuffix: " | 𝐌𝐑"                 
+    serverNameSuffix: " 𝐌𝐑 | "                 
 };
 
 const staffPoints = new Map(); 
@@ -231,7 +231,7 @@ client.on('interactionCreate', async interaction => {
     if (customId === 'open_ticket') {
         await interaction.deferReply({ ephemeral: true });
 
-        const ticketName = `تكت-${user.username}`;
+        const ticketName = `ticket-${user.username}`;
         const ticketChannel = await guild.channels.create({
             name: ticketName,
             type: ChannelType.GuildText,
@@ -387,7 +387,7 @@ client.on('interactionCreate', async interaction => {
             await targetMember.roles.remove(CONFIG.roleUnverified);
             
             const robloxUser = ticketData.answers[3] || targetMember.user.username;
-            await targetMember.setNickname(`${CONFIG.serverNameSuffix.trim()} ${robloxUser}`).catch(() => {});
+            await targetMember.setNickname(`${robloxUser} ${CONFIG.serverNameSuffix.trim()}`).catch(() => {});
         }
 
         await channel.send("تم قبول الطلب ✅. سيتم إغلاق التذكرة خلال لحظات...");
