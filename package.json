@@ -1,7 +1,7 @@
 {
   "name": "my-bot",
   "version": "1.0.0",
-  "description": "",
+  "description": "Discord Ticket Bot",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
