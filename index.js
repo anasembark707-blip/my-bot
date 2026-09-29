@@ -258,7 +258,7 @@ client.on('interactionCreate', async interaction => {
             .setDescription("انت الان بـ الأسئلة التفاعلية لـ التفعيل قم بـ الإجابة عليها 💞.");
 
         const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('ticket_options').setLabel('خيارات التذكرة ⚙️️').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId('ticket_options').setLabel('خيارات التذكرة ⚙').setStyle(ButtonStyle.Primary),
             new ButtonBuilder().setCustomId('close_ticket').setLabel('إغلاق التذكرة ❌️').setStyle(ButtonStyle.Danger),
             new ButtonBuilder().setCustomId('claim_ticket').setLabel('استلام التذكرة ✅️').setStyle(ButtonStyle.Success)
         );
@@ -279,7 +279,7 @@ client.on('interactionCreate', async interaction => {
 
         await ticketChannel.send(`<@${user.id}> **السؤال 1/6:** ما هو اسمك؟`);
 
-        return interaction.editReply({ content: `تم فتح تذكرتك بنجاح هنا: <#${ticketChannel.id}> 🎟️️` });
+        return interaction.editReply({ content: `تم فتح تذكرتك بنجاح هنا: <#${ticketChannel.id}> 🎟` });
     }
 
     if (customId === 'claim_ticket') {
@@ -328,7 +328,7 @@ client.on('interactionCreate', async interaction => {
             await channel.send(`**ترك التذكرة 🚫**\nالإداري المستلم ترك التذكرة <@${user.id}>\nتم خصم نقطة واحدة منك.`);
             
             const row = new ActionRowBuilder().addComponents(
-                new ButtonBuilder().setCustomId('claim_ticket').setLabel('استلام التذكرة ✅️️').setStyle(ButtonStyle.Success)
+                new ButtonBuilder().setCustomId('claim_ticket').setLabel('استلام التذكرة ✅').setStyle(ButtonStyle.Success)
             );
             await channel.send({ content: `<@&${CONFIG.roleStaff}>\nالرجاء الإستلام`, components: [row] });
         }
@@ -387,8 +387,9 @@ client.on('interactionCreate', async interaction => {
             await targetMember.roles.remove(CONFIG.roleUnverified);
             
             const robloxUser = ticketData.answers[3] || targetMember.user.username;
-            // الترتيب المطلوب: يوزر روبلوكس (على اليمين) + اللاحقة (العمود و MR على اليسار)
-            await targetMember.setNickname(`${robloxUser}${CONFIG.serverNameSuffix}`).catch(() => {});
+            // تثبيت اتجاه اللقب بحيث يكون يوزر روبلوكس يمين والعمود و MR يسار بالشكل الصحيح
+            const fixedNickname = `\u202A${robloxUser}\u202C \u200E|\u202A 𝐌𝐑\u202C`;
+            await targetMember.setNickname(fixedNickname).catch(() => {});
         }
 
         await channel.send("تم قبول الطلب ✅. سيتم إغلاق التذكرة خلال لحظات...");
