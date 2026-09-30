@@ -249,10 +249,6 @@ client.on('interactionCreate', async interaction => {
                 {
                     id: CONFIG.roleStaff,
                     allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
-                },
-                {
-                    id: CONFIG.roleHighStaff,
-                    allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
                 }
             ],
         });
@@ -268,8 +264,9 @@ client.on('interactionCreate', async interaction => {
             new ButtonBuilder().setCustomId('claim_ticket').setLabel('استلام التذكرة ✅️').setStyle(ButtonStyle.Success)
         );
 
+        // تم إزالة منشن الإدارة التنفيذية/العليا هنا وأصبح لمنشن الإستاف وصاحب التذكرة فقط
         await ticketChannel.send({
-            content: `<@&${CONFIG.roleStaff}> | <@&${CONFIG.roleHighStaff}> | <@${user.id}>`,
+            content: `<@&${CONFIG.roleStaff}> | <@${user.id}>`,
             embeds: [embed],
             components: [row]
         });
@@ -299,13 +296,14 @@ client.on('interactionCreate', async interaction => {
 
         if (ticketData) ticketData.claimedBy = user.id;
 
-        // عند الاستلام: منع رتبة الإستاف العادية من الكتابة، مع إبقاء الإدارة العليا ورتبة المستلم وصاحب التذكرة قادرين على الكتابة والرؤية
+        // منع رتبة الإستاف العادية من الكتابة في التذكرة
         await channel.permissionOverwrites.edit(CONFIG.roleStaff, {
             SendMessages: false,
             ViewChannel: true
         }).catch(() => {});
 
-        await channel.permissionOverwrites.edit(CONFIG.roleHighStaff, {
+        // إعطاء الإداري المستلم صلاحية كاملة لرؤية والكتابة في التذكرة بشكل مخصص (إضافة العضو للروم وإعطائه الصلاحية)
+        await channel.permissionOverwrites.edit(user.id, {
             SendMessages: true,
             ViewChannel: true,
             ReadMessageHistory: true
@@ -315,7 +313,7 @@ client.on('interactionCreate', async interaction => {
         staffPoints.set(user.id, currentPoints + 1);
 
         await channel.send({
-            content: `🔒 **تم استلام التذكرة بنجاح!**\n👤 **الإداري المسؤول:** <@${user.id}> (أيدي: \`${user.id}\`)\n✨ تم تقييد كتابة الإداريين العاديين وبقيت الإدارة العليا والمستلم قادرين على الكتابة.\n✨ تم منح الإداري نقطة واحدة (+1).\n📊 إجمالي نقاطه الحالية = **${currentPoints + 1}**`
+            content: `🔒 **تم استلام التذكرة بنجاح!**\n👤 **الإداري المسؤول:** <@${user.id}> (أيدي: \`${user.id}\`)\n✨ تم إضافة الإداري بصلاحيات التذكرة وتقييد باقي الإستاف.\n✨ تم منح الإداري نقطة واحدة (+1).\n📊 إجمالي نقاطه الحالية = **${currentPoints + 1}**`
         });
 
         return interaction.reply({ content: "تم استلام التذكرة بنجاح وتسجيل النقطة لك.", ephemeral: true });
@@ -342,13 +340,16 @@ client.on('interactionCreate', async interaction => {
             const currentPoints = staffPoints.get(user.id) || 1;
             staffPoints.set(user.id, Math.max(0, currentPoints - 1));
 
-            // إعادة فتح الصلاحية لرتبة الإستاف العادية عند ترك التذكرة
+            // إعادة فتح الصلاحيات لرتبة الإستاف العادية
             await channel.permissionOverwrites.edit(CONFIG.roleStaff, {
                 SendMessages: true,
                 ViewChannel: true
             }).catch(() => {});
 
-            await channel.send(`**ترك التذكرة 🚫**\nالإداري المستلم ترك التذكرة <@${user.id}>\nتم خصم نقطة واحدة منك، وإعادة فتح الكتابة للإداريين.`);
+            // مسح وإزالة صلاحية الإداري الخاصة عند ترك التذكرة
+            await channel.permissionOverwrites.delete(user.id).catch(() => {});
+
+            await channel.send(`**ترك التذكرة 🚫**\nالإداري المستلم ترك التذكرة <@${user.id}>\nتم خصم نقطة واحدة منك، وتم مسح صلاحيتك الخاصة وإعادة فتح الكتابة للإداريين.`);
             
             const row = new ActionRowBuilder().addComponents(
                 new ButtonBuilder().setCustomId('claim_ticket').setLabel('استلام التذكرة ✅').setStyle(ButtonStyle.Success)
