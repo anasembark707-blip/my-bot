@@ -52,7 +52,7 @@ client.once('ready', async () => {
     console.log(`تم تسجيل الدخول بنجاح باسم ${client.user.tag}! البوت جاهز.`);
 
     client.user.setPresence({
-        activities: [{ name: 'باي ابو غمده', type: ActivityType.Watching }],
+        activities: [{ name: 'by ابو غمده', type: ActivityType.Watching }],
         status: 'online',
     });
 
