@@ -38,10 +38,10 @@ const CONFIG = {
     roleVerified: "1546173143180247043",      
     roleUnverified: "1546173144572624926",    
     rolePlayPass: "1546173141766639718",      
-    roleStaff: "1546173030617710773",         
+    roleStaff: "1553807214110580798",         // أيدي رتبة مسؤول تكيتا
     logChannel: "1553726188470669342",        
     categoryTickets: "1553517079636742164",   
-    serverNameSuffix: " | 𝐌𝐑"                 
+    serverNameSuffix: " || 𝐌𝐑"                 // الترتيب: العمود وزخرفة MR على اليسار
 };
 
 const staffPoints = new Map(); 
@@ -51,7 +51,7 @@ client.once('ready', async () => {
     console.log(`تم تسجيل الدخول بنجاح باسم ${client.user.tag}! البوت جاهز.`);
 
     client.user.setPresence({
-        activities: [{ name: 'تكتات التفعيل 🎮', type: ActivityType.Watching }],
+        activities: [{ name: 'By أبو غمده', type: ActivityType.Watching }],
         status: 'online',
     });
 
@@ -170,8 +170,8 @@ client.on('interactionCreate', async interaction => {
         const { commandName, member, channel } = interaction;
 
         if (commandName === 'setup-verify') {
-            if (!member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-                return interaction.reply({ content: "عذراً، هذا الأمر للأحكام الإدارية فقط! ❌", ephemeral: true });
+            if (!member.roles.cache.has(CONFIG.roleStaff) && !member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+                return interaction.reply({ content: "عذراً، هذا الأمر لمسؤول تكيتا فقط! ❌", ephemeral: true });
             }
 
             await interaction.deferReply({ ephemeral: true });
@@ -198,8 +198,8 @@ client.on('interactionCreate', async interaction => {
         }
 
         if (commandName === 'pointict') {
-            if (!member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-                return interaction.reply({ content: "عذراً، هذا الأمر للأحكام الإدارية فقط! ❌", ephemeral: true });
+            if (!member.roles.cache.has(CONFIG.roleStaff) && !member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+                return interaction.reply({ content: "عذراً، هذا الأمر لمسؤول تكيتا فقط! ❌", ephemeral: true });
             }
             
             const sortedPoints = [...staffPoints.entries()].sort((a, b) => b[1] - a[1]);
@@ -216,8 +216,8 @@ client.on('interactionCreate', async interaction => {
         }
 
         if (commandName === 'restpointict') {
-            if (!member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-                return interaction.reply({ content: "عذراً، هذا الأمر للأحكام الإدارية فقط! ❌", ephemeral: true });
+            if (!member.roles.cache.has(CONFIG.roleStaff) && !member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+                return interaction.reply({ content: "عذراً، هذا الأمر لمسؤول تكيتا فقط! ❌", ephemeral: true });
             }
             staffPoints.clear();
             return interaction.reply({ content: "تم تصفير جميع نقاط الإداريين بنجاح! 🔄", ephemeral: true });
@@ -260,7 +260,7 @@ client.on('interactionCreate', async interaction => {
         const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('ticket_options').setLabel('خيارات التذكرة ⚙').setStyle(ButtonStyle.Primary),
             new ButtonBuilder().setCustomId('close_ticket').setLabel('إغلاق التذكرة ❌️').setStyle(ButtonStyle.Danger),
-            new ButtonBuilder().setCustomId('claim_ticket').setLabel('استلام التذكرة ✅️').setStyle(ButtonStyle.Success)
+            new ButtonBuilder().setCustomId('claim_ticket').setLabel('استلام التذكرة ✅').setStyle(ButtonStyle.Success)
         );
 
         await ticketChannel.send({
@@ -284,7 +284,7 @@ client.on('interactionCreate', async interaction => {
 
     if (customId === 'claim_ticket') {
         if (!member.roles.cache.has(CONFIG.roleStaff)) {
-            return interaction.reply({ content: "هذا الزر خاص بالفريق الإداري فقط! ❌", ephemeral: true });
+            return interaction.reply({ content: "هذا الزر خاص بـ (مسؤول تكيتا) فقط! ❌", ephemeral: true });
         }
 
         const ticketData = activeTickets.get(channel.id);
@@ -294,19 +294,41 @@ client.on('interactionCreate', async interaction => {
 
         if (ticketData) ticketData.claimedBy = user.id;
 
+        // إخفاء التذكرة عن باقي الإداريين وجعلها حصرياً للإداري المستلم وصاحب التذكرة
+        try {
+            await channel.permissionOverwrites.edit(CONFIG.roleStaff, {
+                ViewChannel: false,
+                SendMessages: false
+            });
+            if (ticketData && ticketData.userId) {
+                await channel.permissionOverwrites.edit(ticketData.userId, {
+                    ViewChannel: true,
+                    SendMessages: true,
+                    ReadMessageHistory: true
+                });
+            }
+            await channel.permissionOverwrites.edit(user.id, {
+                ViewChannel: true,
+                SendMessages: true,
+                ReadMessageHistory: true
+            });
+        } catch (e) {
+            console.error("خطأ في تحديث صلاحيات التذكرة:", e);
+        }
+
         const currentPoints = staffPoints.get(user.id) || 0;
         staffPoints.set(user.id, currentPoints + 1);
 
         await channel.send({
-            content: `🔒 **تم استلام التذكرة بنجاح!**\n👤 **الإداري المسؤول:** <@${user.id}> (أيدي: \`${user.id}\`)\n✨ تم منح الإداري نقطة واحدة (+1).\n📊 إجمالي نقاطه الحالية = **${currentPoints + 1}**`
+            content: `🔒 **تم استلام التذكرة بنجاح!**\n👤 **الإداري المسؤول:** <@${user.id}> (أيدي: \`${user.id}\`)\n✨ تم إغلاق التذكرة عن باقي الإداريين وتخصيصها لك.\n📊 إجمالي نقاطه الحالية = **${currentPoints + 1}**`
         });
 
-        return interaction.reply({ content: "تم استلام التذكرة بنجاح وتسجيل النقطة لك.", ephemeral: true });
+        return interaction.reply({ content: "تم استلام التذكرة بنجاح وتسجيل النقطة لك وإخفائها عن بقية الإداريين.", ephemeral: true });
     }
 
     if (customId === 'close_ticket') {
         if (!member.roles.cache.has(CONFIG.roleStaff)) {
-            return interaction.reply({ content: "هذا الزر خاص بالفريق الإداري فقط! ❌", ephemeral: true });
+            return interaction.reply({ content: "هذا الزر خاص بـ (مسؤول تكيتا) فقط! ❌", ephemeral: true });
         }
 
         const row = new ActionRowBuilder().addComponents(
@@ -325,7 +347,16 @@ client.on('interactionCreate', async interaction => {
             const currentPoints = staffPoints.get(user.id) || 1;
             staffPoints.set(user.id, Math.max(0, currentPoints - 1));
 
-            await channel.send(`**ترك التذكرة 🚫**\nالإداري المستلم ترك التذكرة <@${user.id}>\nتم خصم نقطة واحدة منك.`);
+            // إعادة فتح التذكرة لرتبة مسؤول تكيتا عند الترك
+            try {
+                await channel.permissionOverwrites.edit(CONFIG.roleStaff, {
+                    ViewChannel: true,
+                    SendMessages: true,
+                    ReadMessageHistory: true
+                });
+            } catch (e) {}
+
+            await channel.send(`**ترك التذكرة 🚫**\nالإداري المستلم ترك التذكرة <@${user.id}>\nتم خصم نقطة واحدة منك وإعادة فتحها للإداريين.`);
             
             const row = new ActionRowBuilder().addComponents(
                 new ButtonBuilder().setCustomId('claim_ticket').setLabel('استلام التذكرة ✅').setStyle(ButtonStyle.Success)
@@ -375,7 +406,7 @@ client.on('interactionCreate', async interaction => {
 
     if (customId === 'accept_ticket') {
         if (!member.roles.cache.has(CONFIG.roleStaff)) {
-            return interaction.reply({ content: "عذراً، أزرار القبول والرفض خاصة بالفريق الإداري فقط! ❌", ephemeral: true });
+            return interaction.reply({ content: "عذراً، أزرار القبول والرفض خاصة بـ (مسؤول تكيتا) فقط! ❌", ephemeral: true });
         }
 
         const ticketData = activeTickets.get(channel.id);
@@ -387,8 +418,8 @@ client.on('interactionCreate', async interaction => {
             await targetMember.roles.remove(CONFIG.roleUnverified);
             
             const robloxUser = ticketData.answers[3] || targetMember.user.username;
-            // تثبيت اتجاه اللقب بحيث يكون يوزر روبلوكس يمين والعمود و MR يسار بالشكل الصحيح
-            const fixedNickname = `\u202A${robloxUser}\u202C \u200E|\u202A 𝐌𝐑\u202C`;
+            // الترتيب المطلوب: يوزر روبلوكس على اليمين وبعده العمود وزخرفة MR على اليسار
+            const fixedNickname = `\u202A${robloxUser}\u200E${CONFIG.serverNameSuffix}\u202C`;
             await targetMember.setNickname(fixedNickname).catch(() => {});
         }
 
@@ -419,7 +450,7 @@ client.on('interactionCreate', async interaction => {
 
     if (customId === 'reject_ticket') {
         if (!member.roles.cache.has(CONFIG.roleStaff)) {
-            return interaction.reply({ content: "عذراً، أزرار القبول والرفض خاصة بالفريق الإداري فقط! ❌", ephemeral: true });
+            return interaction.reply({ content: "عذراً، أزرار القبول والرفض خاصة بـ (مسؤول تكيتا) فقط! ❌", ephemeral: true });
         }
 
         const ticketData = activeTickets.get(channel.id);
