@@ -129,11 +129,22 @@ client.on('messageCreate', async message => {
             ticketData.step = 6;
             
             const name1 = ticketData.answers[1];
-            await message.channel.send(`**السؤال 6/6:** الحلف:\nأنا أقر (${name1}) وأقسم بالله: أنّي ما أخرب اي رول، وما أستخدم اي رتبه ل تشويه سمعة السيرفر، وما أستخدم أي صلاحية لضرر أو لمصالح شخصية\n*(يرجى كتابة الحلف بالنص تماماً مع اسمك)*`);
+            await message.channel.send(`**السؤال 6/6:** الحلف:\nانا اقر (${name1}) واقسم بالله اني ما اخرب اي رول وما استخدم اي رتبه ل تشويه سمعة السيرفر وما استخدم اي صلاحية لضرر أو لمصالح شخصية\n*(يرجى كتابة الحلف بالنص تماماً مع اسمك)*`);
         } else if (step === 6) {
-            const expectedHalf = `أنا أقر (${ticketData.answers[1]}) وأقسم بالله: أنّي ما أخرب اي رول، وما أستخدم اي رتبه ل تشويه سمعة السيرفر، وما أستخدم أي صلاحية لضرر أو لمصالح شخصية`;
+            // تنظيف النص وتوحيد الهمزات وحذف الأقواس لضمان المرونة في التحقق
+            const cleanText = (str) => {
+                return str
+                    .replace(/[إأآٱ]/g, 'ا')
+                    .replace(/ة/g, 'ه')
+                    .replace(/[()]/g, '') // إزالة الأقواس لو كتبها أو شالها
+                    .replace(/\s+/g, ' ')
+                    .trim();
+            };
+
+            const userClean = cleanText(message.content);
+            const expectedClean = cleanText(`انا اقر ${ticketData.answers[1]} واقسم بالله اني ما اخرب اي رول وما استخدم اي رتبه ل تشويه سمعة السيرفر وما استخدم اي صلاحية لضرر أو لمصالح شخصية`);
             
-            if (message.content.trim() !== expectedHalf.trim()) {
+            if (userClean !== expectedClean) {
                 return message.reply("خطأ! الحلف غير مطابق تماماً لما طلب منك، يرجى كتابته بالشكل الصحيح ❌");
             }
 
@@ -264,7 +275,6 @@ client.on('interactionCreate', async interaction => {
             new ButtonBuilder().setCustomId('claim_ticket').setLabel('استلام التذكرة ✅️').setStyle(ButtonStyle.Success)
         );
 
-        // تم إزالة منشن الإدارة التنفيذية/العليا هنا وأصبح لمنشن الإستاف وصاحب التذكرة فقط
         await ticketChannel.send({
             content: `<@&${CONFIG.roleStaff}> | <@${user.id}>`,
             embeds: [embed],
@@ -296,13 +306,11 @@ client.on('interactionCreate', async interaction => {
 
         if (ticketData) ticketData.claimedBy = user.id;
 
-        // منع رتبة الإستاف العادية من الكتابة في التذكرة
         await channel.permissionOverwrites.edit(CONFIG.roleStaff, {
             SendMessages: false,
             ViewChannel: true
         }).catch(() => {});
 
-        // إعطاء الإداري المستلم صلاحية كاملة لرؤية والكتابة في التذكرة بشكل مخصص (إضافة العضو للروم وإعطائه الصلاحية)
         await channel.permissionOverwrites.edit(user.id, {
             SendMessages: true,
             ViewChannel: true,
@@ -312,8 +320,9 @@ client.on('interactionCreate', async interaction => {
         const currentPoints = staffPoints.get(user.id) || 0;
         staffPoints.set(user.id, currentPoints + 1);
 
+        // تم تحديث نص رسالة الاستلام هنا
         await channel.send({
-            content: `🔒 **تم استلام التذكرة بنجاح!**\n👤 **الإداري المسؤول:** <@${user.id}> (أيدي: \`${user.id}\`)\n✨ تم إضافة الإداري بصلاحيات التذكرة وتقييد باقي الإستاف.\n✨ تم منح الإداري نقطة واحدة (+1).\n📊 إجمالي نقاطه الحالية = **${currentPoints + 1}**`
+            content: `تم استلام التذكرة بنجاح ! ✅️\nالإداري المستلم : <@${user.id}>\nألايدي : (${user.id}) 👤\nتم منح الإداري نقطة واحدة ( +1 ) ✔️\nإجمالي نقاطك الحالية = ${currentPoints + 1} 📊`
         });
 
         return interaction.reply({ content: "تم استلام التذكرة بنجاح وتسجيل النقطة لك.", ephemeral: true });
@@ -340,13 +349,11 @@ client.on('interactionCreate', async interaction => {
             const currentPoints = staffPoints.get(user.id) || 1;
             staffPoints.set(user.id, Math.max(0, currentPoints - 1));
 
-            // إعادة فتح الصلاحيات لرتبة الإستاف العادية
             await channel.permissionOverwrites.edit(CONFIG.roleStaff, {
                 SendMessages: true,
                 ViewChannel: true
             }).catch(() => {});
 
-            // مسح وإزالة صلاحية الإداري الخاصة عند ترك التذكرة
             await channel.permissionOverwrites.delete(user.id).catch(() => {});
 
             await channel.send(`**ترك التذكرة 🚫**\nالإداري المستلم ترك التذكرة <@${user.id}>\nتم خصم نقطة واحدة منك، وتم مسح صلاحيتك الخاصة وإعادة فتح الكتابة للإداريين.`);
