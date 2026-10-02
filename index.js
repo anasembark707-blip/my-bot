@@ -513,10 +513,10 @@ client.on('interactionCreate', async interaction => {
                     `**العضو صاحب التذكرة:** <@${ticketData.userId}>\n` +
                     `**الإداري المسؤول:** <@${user.id}> (أيدي: \`${user.id}\`)\n` +
                     `**التاريخ والوقت:** <t:${Math.floor(Date.now() / 1000)}:F>\n\n` +
-                    `تم إرفاق سجل التذكرة بتنسيق HTML (تصميم شات ديسكورد) في الملف أدناه 🌐`
+                    `تم إرفاق سجل محادثة التذكرة بتنسيق HTML (تصميم شات ديسكورد) في الملف أدناه 🌐`
                 );
 
-            const attachment = new AttachmentBuilder(Buffer.from(htmlContent, 'utf-8'), { name: `ticket-${ticketData.userId}.html` });
+            const attachment = new AttachmentBuilder(Buffer.from(htmlContent, 'utf-8'), { name: `transcript-${ticketData.userId}.html` });
 
             await logChan.send({ embeds: [logEmbed], files: [attachment] });
         }
@@ -622,13 +622,13 @@ client.on('interactionCreate', async interaction => {
                 .setColor(0xFF0000)
                 .setTitle("سجل رفض تفعيل ❌")
                 .setDescription(
-                    `**العضو صاحب التذكرة:** <@${ticketdata.userId || ticketData.userId}>\n` +
+                    `**العضو صاحب التذكرة:** <@${ticketData.userId}>\n` +
                     `**الإداري المسؤول:** <@${user.id}> (أيدي: \`${user.id}\`)\n` +
                     `**التاريخ والوقت:** <t:${Math.floor(Date.now() / 1000)}:F>\n\n` +
-                    `تم إرفاق سجل التذكرة بتنسيق HTML (تصميم شات ديسكورد) في الملف أدناه 🌐`
+                    `تم إرفاق سجل محادثة التذكرة بتنسيق HTML (تصميم شات ديسكورد) في الملف أدناه 🌐`
                 );
 
-            const attachment = new AttachmentBuilder(Buffer.from(htmlContent, 'utf-8'), { name: `ticket-rejected-${ticketData.userId}.html` });
+            const attachment = new AttachmentBuilder(Buffer.from(htmlContent, 'utf-8'), { name: `transcript-rejected-${ticketData.userId}.html` });
 
             await logChan.send({ embeds: [logEmbed], files: [attachment] });
         }
