@@ -320,9 +320,9 @@ client.on('interactionCreate', async interaction => {
         const currentPoints = staffPoints.get(user.id) || 0;
         staffPoints.set(user.id, currentPoints + 1);
 
-        // تم تحديث نص رسالة الاستلام هنا
+        // تم تحديث الأيدي هنا ليصبح داخل علامات التنسيق البرمجي (Backticks) لسهولة النسخ
         await channel.send({
-            content: `تم استلام التذكرة بنجاح ! ✅️\nالإداري المستلم : <@${user.id}>\nألايدي : (${user.id}) 👤\nتم منح الإداري نقطة واحدة ( +1 ) ✔️\nإجمالي نقاطك الحالية = ${currentPoints + 1} 📊`
+            content: `تم استلام التذكرة بنجاح ! ✅️\nالإداري المستلم : <@${user.id}>\nألايدي : (\`${user.id}\`) 👤\nتم منح الإداري نقطة واحدة ( +1 ) ✔️️\nإجمالي نقاطك الحالية = ${currentPoints + 1} 📊`
         });
 
         return interaction.reply({ content: "تم استلام التذكرة بنجاح وتسجيل النقطة لك.", ephemeral: true });
