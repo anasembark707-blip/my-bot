@@ -272,7 +272,7 @@ client.on('interactionCreate', async interaction => {
         const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('ticket_options').setLabel('خيارات التذكرة ⚙').setStyle(ButtonStyle.Primary),
             new ButtonBuilder().setCustomId('close_ticket').setLabel('إغلاق التذكرة ❌️').setStyle(ButtonStyle.Danger),
-            new ButtonBuilder().setCustomId('claim_ticket').setLabel('استلام التذكرة ✅️').setStyle(ButtonStyle.Success)
+            new ButtonBuilder().setCustomId('claim_ticket').setLabel('استلام التذكرة ✅️️').setStyle(ButtonStyle.Success)
         );
 
         await ticketChannel.send({
@@ -510,10 +510,15 @@ client.on('interactionCreate', async interaction => {
                 .setColor(0x00FF00)
                 .setTitle("سجل قبول تفعيل جديد ✅")
                 .setDescription(
-                    `**العضو صاحب التذكرة:** <@${ticketData.userId}>\n` +
                     `**الإداري المسؤول:** <@${user.id}> (أيدي: \`${user.id}\`)\n` +
+                    `**العضو صاحب التذكرة:** <@${ticketData.userId}>\n` +
                     `**التاريخ والوقت:** <t:${Math.floor(Date.now() / 1000)}:F>\n\n` +
-                    `تم إرفاق سجل محادثة التذكرة بتنسيق HTML (تصميم شات ديسكورد) في الملف أدناه 🌐`
+                    `١ الإجابة : ${ticketData.answers[1]}\n` +
+                    `٢ الإجابة : ${ticketData.answers[2]}\n` +
+                    `٣ الإجابة : ${ticketData.answers[3]}\n` +
+                    `٤ الإجابة : [صورة](${ticketData.answers[4]})\n` +
+                    `٥ الإجابة : [صورة](${ticketData.answers[5]})\n` +
+                    `٦ الإجابة : ${ticketData.answers[6]}`
                 );
 
             const attachment = new AttachmentBuilder(Buffer.from(htmlContent, 'utf-8'), { name: `transcript-${ticketData.userId}.html` });
@@ -622,10 +627,15 @@ client.on('interactionCreate', async interaction => {
                 .setColor(0xFF0000)
                 .setTitle("سجل رفض تفعيل ❌")
                 .setDescription(
-                    `**العضو صاحب التذكرة:** <@${ticketData.userId}>\n` +
                     `**الإداري المسؤول:** <@${user.id}> (أيدي: \`${user.id}\`)\n` +
+                    `**العضو صاحب التذكرة:** <@${ticketData.userId}>\n` +
                     `**التاريخ والوقت:** <t:${Math.floor(Date.now() / 1000)}:F>\n\n` +
-                    `تم إرفاق سجل محادثة التذكرة بتنسيق HTML (تصميم شات ديسكورد) في الملف أدناه 🌐`
+                    `١ الإجابة : ${ticketData.answers[1]}\n` +
+                    `٢ الإجابة : ${ticketData.answers[2]}\n` +
+                    `٣ الإجابة : ${ticketData.answers[3]}\n` +
+                    `٤ الإجابة : [صورة](${ticketData.answers[4]})\n` +
+                    `٥ الإجابة : [صورة](${ticketData.answers[5]})\n` +
+                    `٦ الإجابة : ${ticketData.answers[6]}`
                 );
 
             const attachment = new AttachmentBuilder(Buffer.from(htmlContent, 'utf-8'), { name: `transcript-rejected-${ticketData.userId}.html` });
