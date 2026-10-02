@@ -11,7 +11,7 @@ const {
     REST,
     Routes,
     ActivityType,
-    AttachmentBuilder // تمت إضافة هذه المكتبة لإنشاء الملفات
+    AttachmentBuilder
 } = require('discord.js');
 const express = require('express');
 
@@ -425,6 +425,87 @@ client.on('interactionCreate', async interaction => {
         
         const logChan = guild.channels.cache.get(CONFIG.logChannel);
         if (logChan) {
+            const fetchMessages = async (ch) => {
+                let sumMessages = [];
+                let lastId;
+                while (true) {
+                    const options = { limit: 100 };
+                    if (lastId) options.before = lastId;
+                    const messages = await ch.messages.fetch(options);
+                    if (messages.size === 0) break;
+                    sumMessages.push(...messages.values());
+                    lastId = messages.lastKey();
+                    if (messages.size < 100) break;
+                }
+                return sumMessages.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+            };
+
+            const allMsgs = await fetchMessages(channel);
+            
+            let htmlContent = `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>سجل تذكرة - ${channel.name}</title>
+    <style>
+        body { background-color: #313338; color: #dbdee1; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; }
+        .header { background: #2b2d31; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-right: 5px solid #23a55a; }
+        .message { display: flex; margin-bottom: 20px; align-items: flex-start; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; margin-left: 15px; background-color: #5865f2; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; overflow: hidden; flex-shrink: 0; }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .content { flex-grow: 1; }
+        .username { font-weight: 600; color: #f2f3f5; margin-left: 8px; }
+        .timestamp { font-size: 11px; color: #949ba4; }
+        .text { margin-top: 4px; color: #dbdee1; white-space: pre-wrap; word-break: break-word; line-height: 1.4; }
+        .embed { background: #2b2d31; border-radius: 4px; border-right: 4px solid #5865f2; padding: 10px; margin-top: 8px; max-width: 520px; border-top: 1px solid #3f4147; border-left: 1px solid #3f4147; border-bottom: 1px solid #3f4147; }
+        .embed-title { font-weight: bold; color: white; margin-bottom: 5px; }
+        .embed-desc { font-size: 13px; color: #dbdee1; }
+        .attachment img { max-width: 300px; border-radius: 8px; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>📂 سجل محادثة التذكرة (مقبولة)</h2>
+        <p><strong>اسم الروم:</strong> ${channel.name} | <strong>صاحب التذكرة ID:</strong> ${ticketData.userId} | <strong>الإداري المسؤول:</strong> ${user.tag}</p>
+    </div>
+    <div class="chat-container">`;
+
+            for (const msg of allMsgs) {
+                const time = new Date(msg.createdTimestamp).toLocaleString();
+                const authorName = msg.author.username;
+                const avatarUrl = msg.author.displayAvatarURL({ extension: 'png' });
+                let text = msg.content || "";
+
+                htmlContent += `
+        <div class="message">
+            <div class="avatar"><img src="${avatarUrl}" alt="AV"></div>
+            <div class="content">
+                <div>
+                    <span class="username">${authorName}</span>
+                    <span class="timestamp">${time}</span>
+                </div>
+                <div class="text">${text}</div>`;
+
+                if (msg.embeds && msg.embeds.length > 0) {
+                    for (const embed of msg.embeds) {
+                        htmlContent += `<div class="embed">`;
+                        if (embed.title) htmlContent += `<div class="embed-title">${embed.title}</div>`;
+                        if (embed.description) htmlContent += `<div class="embed-desc">${embed.description.replace(/\n/g, '<br>')}</div>`;
+                        htmlContent += `</div>`;
+                    }
+                }
+
+                if (msg.attachments && msg.attachments.size > 0) {
+                    msg.attachments.forEach(att => {
+                        htmlContent += `<div class="attachment"><a href="${att.url}" target="_blank"><img src="${att.url}" alt="Attachment"></a></div>`;
+                    });
+                }
+
+                htmlContent += `</div></div>`;
+            }
+
+            htmlContent += `</div></body></html>`;
+
             const logEmbed = new EmbedBuilder()
                 .setColor(0x00FF00)
                 .setTitle("سجل قبول تفعيل جديد ✅")
@@ -432,28 +513,10 @@ client.on('interactionCreate', async interaction => {
                     `**العضو صاحب التذكرة:** <@${ticketData.userId}>\n` +
                     `**الإداري المسؤول:** <@${user.id}> (أيدي: \`${user.id}\`)\n` +
                     `**التاريخ والوقت:** <t:${Math.floor(Date.now() / 1000)}:F>\n\n` +
-                    `١ الإجابة : ${ticketData.answers[1]}\n` +
-                    `٢ الإجابة : ${ticketData.answers[2]}\n` +
-                    `٣ الإجابة : ${ticketData.answers[3]}\n` +
-                    `٤ الإجابة : [صورة](${ticketData.answers[4]})\n` +
-                    `٥ الإجابة : [صورة](${ticketData.answers[5]})\n` +
-                    `٦ الإجابة : ${ticketData.answers[6]}`
+                    `تم إرفاق سجل التذكرة بتنسيق HTML (تصميم شات ديسكورد) في الملف أدناه 🌐`
                 );
 
-            // إنشاء ملف نصي يحتوي على بيانات التذكرة بالكامل
-            const logTextContent = 
-                `=== سجل تذكرة التفعيل (مقبولة) ===\n` +
-                `صاحب التذكرة ID: ${ticketData.userId}\n` +
-                `الإداري المسؤول ID: ${user.id}\n` +
-                `التاريخ: ${new Date().toLocaleString()}\n\n` +
-                `1. الاسم: ${ticketData.answers[1]}\n` +
-                `2. العمر: ${ticketData.answers[2]}\n` +
-                `3. يوزر روبلكس: ${ticketData.answers[3]}\n` +
-                `4. رابط بروفايل روبلكس: ${ticketData.answers[4]}\n` +
-                `5. رابط إثبات القروب: ${ticketData.answers[5]}\n` +
-                `6. الحلف: ${ticketData.answers[6]}\n`;
-
-            const attachment = new AttachmentBuilder(Buffer.from(logTextContent, 'utf-8'), { name: `ticket-${ticketData.userId}.txt` });
+            const attachment = new AttachmentBuilder(Buffer.from(htmlContent, 'utf-8'), { name: `ticket-${ticketData.userId}.html` });
 
             await logChan.send({ embeds: [logEmbed], files: [attachment] });
         }
@@ -474,35 +537,98 @@ client.on('interactionCreate', async interaction => {
 
         const logChan = guild.channels.cache.get(CONFIG.logChannel);
         if (logChan) {
+            const fetchMessages = async (ch) => {
+                let sumMessages = [];
+                let lastId;
+                while (true) {
+                    const options = { limit: 100 };
+                    if (lastId) options.before = lastId;
+                    const messages = await ch.messages.fetch(options);
+                    if (messages.size === 0) break;
+                    sumMessages.push(...messages.values());
+                    lastId = messages.lastKey();
+                    if (messages.size < 100) break;
+                }
+                return sumMessages.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+            };
+
+            const allMsgs = await fetchMessages(channel);
+            
+            let htmlContent = `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>سجل تذكرة - ${channel.name}</title>
+    <style>
+        body { background-color: #313338; color: #dbdee1; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; }
+        .header { background: #2b2d31; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-right: 5px solid #f23f43; }
+        .message { display: flex; margin-bottom: 20px; align-items: flex-start; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; margin-left: 15px; background-color: #5865f2; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; overflow: hidden; flex-shrink: 0; }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .content { flex-grow: 1; }
+        .username { font-weight: 600; color: #f2f3f5; margin-left: 8px; }
+        .timestamp { font-size: 11px; color: #949ba4; }
+        .text { margin-top: 4px; color: #dbdee1; white-space: pre-wrap; word-break: break-word; line-height: 1.4; }
+        .embed { background: #2b2d31; border-radius: 4px; border-right: 4px solid #f23f43; padding: 10px; margin-top: 8px; max-width: 520px; border-top: 1px solid #3f4147; border-left: 1px solid #3f4147; border-bottom: 1px solid #3f4147; }
+        .embed-title { font-weight: bold; color: white; margin-bottom: 5px; }
+        .embed-desc { font-size: 13px; color: #dbdee1; }
+        .attachment img { max-width: 300px; border-radius: 8px; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>📂 سجل محادثة التذكرة (مرفوضة)</h2>
+        <p><strong>اسم الروم:</strong> ${channel.name} | <strong>صاحب التذكرة ID:</strong> ${ticketData.userId} | <strong>الإداري المسؤول:</strong> ${user.tag}</p>
+    </div>
+    <div class="chat-container">`;
+
+            for (const msg of allMsgs) {
+                const time = new Date(msg.createdTimestamp).toLocaleString();
+                const authorName = msg.author.username;
+                const avatarUrl = msg.author.displayAvatarURL({ extension: 'png' });
+                let text = msg.content || "";
+
+                htmlContent += `
+        <div class="message">
+            <div class="avatar"><img src="${avatarUrl}" alt="AV"></div>
+            <div class="content">
+                <div>
+                    <span class="username">${authorName}</span>
+                    <span class="timestamp">${time}</span>
+                </div>
+                <div class="text">${text}</div>`;
+
+                if (msg.embeds && msg.embeds.length > 0) {
+                    for (const embed of msg.embeds) {
+                        htmlContent += `<div class="embed">`;
+                        if (embed.title) htmlContent += `<div class="embed-title">${embed.title}</div>`;
+                        if (embed.description) htmlContent += `<div class="embed-desc">${embed.description.replace(/\n/g, '<br>')}</div>`;
+                        htmlContent += `</div>`;
+                    }
+                }
+
+                if (msg.attachments && msg.attachments.size > 0) {
+                    msg.attachments.forEach(att => {
+                        htmlContent += `<div class="attachment"><a href="${att.url}" target="_blank"><img src="${att.url}" alt="Attachment"></a></div>`;
+                    });
+                }
+
+                htmlContent += `</div></div>`;
+            }
+
+            htmlContent += `</div></body></html>`;
+
             const logEmbed = new EmbedBuilder()
                 .setColor(0xFF0000)
                 .setTitle("سجل رفض تفعيل ❌")
                 .setDescription(
-                    `**العضو صاحب التذكرة:** <@${ticketData.userId}>\n` +
+                    `**العضو صاحب التذكرة:** <@${ticketdata.userId || ticketData.userId}>\n` +
                     `**الإداري المسؤول:** <@${user.id}> (أيدي: \`${user.id}\`)\n` +
                     `**التاريخ والوقت:** <t:${Math.floor(Date.now() / 1000)}:F>\n\n` +
-                    `١ الإجابة : ${ticketData.answers[1]}\n` +
-                    `٢ الإجابة : ${ticketData.answers[2]}\n` +
-                    `٣ الإجابة : ${ticketData.answers[3]}\n` +
-                    `٤ الإجابة : [صورة](${ticketData.answers[4]})\n` +
-                    `٥ الإجابة : [صورة](${ticketData.answers[5]})\n` +
-                    `٦ الإجابة : ${ticketData.answers[6]}`
+                    `تم إرفاق سجل التذكرة بتنسيق HTML (تصميم شات ديسكورد) في الملف أدناه 🌐`
                 );
 
-            // إنشاء ملف نصي للتذكرة المرفوضة أيضاً
-            const logTextContent = 
-                `=== سجل تذكرة التفعيل (مرفوضة) ===\n` +
-                `صاحب التذكرة ID: ${ticketData.userId}\n` +
-                `الإداري المسؤول ID: ${user.id}\n` +
-                `التاريخ: ${new Date().toLocaleString()}\n\n` +
-                `1. الاسم: ${ticketData.answers[1]}\n` +
-                `2. العمر: ${ticketData.answers[2]}\n` +
-                `3. يوزر روبلكس: ${ticketData.answers[3]}\n` +
-                `4. رابط بروفايل روبلكس: ${ticketData.answers[4]}\n` +
-                `5. رابط إثبات القروب: ${ticketData.answers[5]}\n` +
-                `6. الحلف: ${ticketData.answers[6]}\n`;
-
-            const attachment = new AttachmentBuilder(Buffer.from(logTextContent, 'utf-8'), { name: `ticket-rejected-${ticketData.userId}.txt` });
+            const attachment = new AttachmentBuilder(Buffer.from(htmlContent, 'utf-8'), { name: `ticket-rejected-${ticketData.userId}.html` });
 
             await logChan.send({ embeds: [logEmbed], files: [attachment] });
         }
