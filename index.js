@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: __dirname + '/.env' });
 
 const { 
     Client, 
@@ -650,7 +650,7 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
-const finalBotToken = process.env.DISCORD_TOKEN || process.env.TOKEN;
+const finalBotToken = process.env.DISCORD_TOKEN || process.env.TOKEN || "ضع_التوكن_الجديد_هنا";
 
 if (!finalBotToken) {
     console.error("خطأ حرج: لم يتم العثور على توكن البوت في متغيرات البيئة (DISCORD_TOKEN أو TOKEN)!");
