@@ -653,11 +653,11 @@ client.on('interactionCreate', async interaction => {
 const finalBotToken = process.env.DISCORD_TOKEN || process.env.TOKEN;
 
 if (!finalBotToken) {
-    console.error("خطأ حرج: لم يتم العثور على توكن البوت في متغيرات البيئة (DISCORD_TOKEN أو TOKEN)!");
+    console.error("(D) خطأ حرج: لم يتم العثور على توكن البوت في متغيرات البيئة!");
 } else {
     client.login(finalBotToken).then(() => {
-        console.log("تم إرسال أمر تسجيل الدخول للبوت بنجاح تام!");
+        console.log("(A) تم إرسال أمر تسجيل الدخول للبوت بنجاح!");
     }).catch(err => {
-        console.error("خطأ قاتل أثناء محاولة تسجيل دخول البوت من ديسكورد:", err);
+        console.error("(E) حدث خطأ أثناء محاولة تسجيل دخول البوت من ديسكورد:", err);
     });
 }
