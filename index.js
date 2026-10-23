@@ -650,7 +650,7 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
-const finalBotToken = process.env.DISCORD_TOKEN || process.env.TOKEN || "ضع_التوكن_الجديد_هنا";
+const finalBotToken = process.env.DISCORD_TOKEN || process.env.TOKEN;
 
 if (!finalBotToken) {
     console.error("خطأ حرج: لم يتم العثور على توكن البوت في متغيرات البيئة (DISCORD_TOKEN أو TOKEN)!");
